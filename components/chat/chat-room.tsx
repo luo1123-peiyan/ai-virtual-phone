@@ -13,6 +13,9 @@ import { EmojiPanel, StickerPanel } from "./emoji-panel";
 import { StickerSearchSuggest } from "./sticker-search-suggest";
 import { StateValuesPanel } from "./state-values-panel";
 import { generateChatCompletion, generateOfflineChatCompletion, flattenCompletionResult, ChatEngineError } from "@/lib/chat-engine";
+import { formatOfflineTurnXml as formatOfflineTurnXmlShared, buildOfflinePromptHistory as buildOfflinePromptHistoryShared } from "@/lib/offline-prompt-builder";
+import { getStatusRegionConfig, isCustomStatusRegionActive } from "@/lib/chat-status-region";
+import { CustomStatusFrame } from "@/components/chat/custom-status-frame";
 import { sendBrowserNotification } from "@/lib/browser-notification";
 import { dispatchChatMessageNotice } from "@/lib/chat-notification-events";
 import { shouldSendChatInputOnEnter } from "@/lib/chat-input-keyboard";
@@ -2433,6 +2436,7 @@ export function ChatRoom({ session, onBack }: ChatRoomProps) {
                     responseRoundId,
                     editableResponseText,
                     statusPanel: attachHere && statusPanel ? statusPanel : undefined,
+                    statusRegionMode: customStatusActive && attachHere && statusPanel ? "custom" as const : undefined,
                     innerMonologue: attachHere && innerMonologue ? innerMonologue : undefined,
                     reasoningText: takeRoundReasoning(),
                     stateValues: attachHere && stateValues.length > 0 ? stateValues : undefined,
@@ -2469,6 +2473,7 @@ export function ChatRoom({ session, onBack }: ChatRoomProps) {
                     responseRoundId,
                     editableResponseText,
                     statusPanel,
+                    statusRegionMode: customStatusActive && statusPanel ? "custom" as const : undefined,
                     innerMonologue,
                     reasoningText: takeRoundReasoning(),
                     stateValues: stateValues.length > 0 ? stateValues : undefined,
@@ -2756,6 +2761,7 @@ export function ChatRoom({ session, onBack }: ChatRoomProps) {
                     responseBatchId,
                     rawResponseText,
                     statusPanel,
+                    statusRegionMode: customStatusActive && statusPanel ? "custom" as const : undefined,
                     innerMonologue,
                     reasoningText: options?.reasoningText,
                     stateValues: stateValues.length > 0 ? stateValues : undefined,
@@ -2788,6 +2794,7 @@ export function ChatRoom({ session, onBack }: ChatRoomProps) {
                 responseBatchId,
                 rawResponseText,
                 statusPanel: idx === metaIdx && statusPanel ? statusPanel : undefined,
+                statusRegionMode: customStatusActive && idx === metaIdx && statusPanel ? "custom" as const : undefined,
                 innerMonologue: idx === metaIdx && innerMonologue ? innerMonologue : undefined,
                 reasoningText: idx === metaIdx ? options?.reasoningText : undefined,
                 stateValues: idx === metaIdx && stateValues.length > 0 ? stateValues : undefined,
@@ -3426,6 +3433,7 @@ export function ChatRoom({ session, onBack }: ChatRoomProps) {
                                 responseRoundId,
                                 editableResponseText,
                                 statusPanel: !attachedState && statusPanel ? statusPanel : undefined,
+                                statusRegionMode: customStatusActive && !attachedState && statusPanel ? "custom" as const : undefined,
                                 innerMonologue: !attachedState && innerMonologue ? innerMonologue : undefined,
                                 reasoningText: !attachedState ? roundReasoning : undefined,
                                 stateValues: !attachedState && stateValues.length > 0 ? stateValues : undefined,
@@ -3763,58 +3771,16 @@ export function ChatRoom({ session, onBack }: ChatRoomProps) {
         return true;
     };
 
-    const formatOfflineTurnXml = useCallback((turn: ChatOfflineTurn): string => {
-        if (turn.rawText?.trim()) return turn.rawText.trim();
-        const summaryTag = turn.summaryTag?.trim() || "summary";
-        return [
-            "<content>",
-            turn.assistantContent,
-            "</content>",
-            `<${summaryTag}>`,
-            turn.summary,
-            `</${summaryTag}>`,
-        ].join("\n");
-    }, []);
+    // 线下 XML 构造与提示词查看器共用 lib/offline-prompt-builder（社区 #108），
+    // 保证「预览 = 真实发出的提示词」；此处仅包一层稳定引用。
+    // 自定义状态栏：custom 生效时新消息盖戳，折叠区改走用户渲染代码；旧消息按原生渲染
+    const statusRegionCfg = getStatusRegionConfig(session.id);
+    const customStatusActive = isCustomStatusRegionActive(statusRegionCfg);
 
-    const buildOfflinePromptHistory = (turns: ChatOfflineTurn[], pendingUserContent: string): ChatMessage[] => {
-        const history: ChatMessage[] = [];
-        for (const turn of turns) {
-            const assistantAt = turn.createdAt;
-            const userAtMs = new Date(turn.createdAt).getTime() - 1;
-            const userAt = Number.isFinite(userAtMs) ? new Date(userAtMs).toISOString() : turn.createdAt;
-            if (turn.userContent.trim()) {
-                history.push({
-                    id: `${turn.id}_user`,
-                    sessionId: session.id,
-                    role: "user",
-                    content: turn.userContent,
-                    status: "sent",
-                    createdAt: userAt,
-                });
-            }
-            history.push({
-                id: `${turn.id}_assistant`,
-                sessionId: session.id,
-                role: "assistant",
-                content: formatOfflineTurnXml(turn),
-                status: "sent",
-                createdAt: assistantAt,
-                ...(session.isGroup ? { senderName: session.groupName || "群聊线下" } : {}),
-            });
-        }
-        if (pendingUserContent.trim()) {
-            history.push({
-                id: `offline_pending_${Date.now()}`,
-                sessionId: session.id,
-                role: "user",
-                content: pendingUserContent.trim(),
-                status: "sent",
-                createdAt: new Date().toISOString(),
-            });
-        }
-        return history;
-    };
+    const formatOfflineTurnXml = useCallback((turn: ChatOfflineTurn): string => formatOfflineTurnXmlShared(turn), []);
 
+    const buildOfflinePromptHistory = (turns: ChatOfflineTurn[], pendingUserContent: string): ChatMessage[] =>
+        buildOfflinePromptHistoryShared(session, turns, pendingUserContent);
     const getOfflineCopyText = (turn: ChatOfflineTurn, role: OfflineActionTarget["role"]): string => {
         if (role === "user") return turn.userContent;
         return formatOfflineTurnXml(turn);
@@ -4296,6 +4262,7 @@ export function ChatRoom({ session, onBack }: ChatRoomProps) {
                 rawResponseText?: string;
                 responseBatchId?: string;
                 statusPanel?: string;
+                statusRegionMode?: "custom";
                 innerMonologue?: string;
                 stateValues?: StateValue[];
                 freshStateValues?: StateValue[];
@@ -4330,6 +4297,7 @@ export function ChatRoom({ session, onBack }: ChatRoomProps) {
                         rawResponseText: segment.responseText,
                         responseBatchId,
                         statusPanel: attachHere && statusPanel ? statusPanel : undefined,
+                    statusRegionMode: customStatusActive && attachHere && statusPanel ? "custom" as const : undefined,
                         innerMonologue: attachHere && innerMonologue ? innerMonologue : undefined,
                         stateValues: attachHere && stateValues.length > 0 ? stateValues : undefined,
                         freshStateValues: attachHere ? freshStateValues : undefined,
@@ -5790,7 +5758,16 @@ export function ChatRoom({ session, onBack }: ChatRoomProps) {
                                 </div>
                             )}
                             {/* Thought chain card (sticky note / journal style) */}
-                            {hasFoldedPanel && expandedMonologueId === msg.id && (
+                            {hasFoldedPanel && expandedMonologueId === msg.id && msg.statusRegionMode === "custom" && statusRegionCfg.renderHtml.trim() && (
+                                /* 自定义状态栏：便利贴容器不画，折叠区交给用户渲染代码（数值面板独立保留） */
+                                <div style={{ marginLeft: 52, marginTop: -8, maxWidth: "calc(100% - 64px)" }}>
+                                    {cardStateValues && cardStateValues.length > 0 && (
+                                        <StateValuesPanel stateValues={cardStateValues} />
+                                    )}
+                                    <CustomStatusFrame html={statusRegionCfg.renderHtml} raw={renderMsg.statusPanel || ""} />
+                                </div>
+                            )}
+                            {hasFoldedPanel && expandedMonologueId === msg.id && !(msg.statusRegionMode === "custom" && statusRegionCfg.renderHtml.trim()) && (
                                 <div className="chat-thought-card">
                                     {/* Decorative washi tape */}
                                     <div className="chat-thought-tape-left" />

@@ -1028,6 +1028,8 @@ export function buildMascotNativeNameMap(): Map<string, string> {
 export type MascotToolContext = {
     pageContext: MascotPageContext;
     history?: CssAssetUserImageHistoryMessage[];
+    /** 同一条用户消息触发的整轮任务共享，用于保证每个角色只备份一次。 */
+    characterBackupIds?: Set<string>;
 };
 
 /** 执行小卷工具调用 */
@@ -1054,7 +1056,7 @@ export async function executeMascotToolCall(call: ToolCall, ctx: MascotToolConte
             // ─── 角色 ───
             case "读取角色": return await handleReadCharacter(call.args);
             case "创建角色": return await handleCreateCharacter(call.args);
-            case "更新角色字段": return await handleUpdateCharacterField(call.args);
+            case "更新角色字段": return await handleUpdateCharacterField(call.args, ctx);
 
             // ─── 角色世界（世界卷宗）───
             case "列出世界卷宗": return await handleListCharacterWorlds();
@@ -1529,8 +1531,9 @@ async function handleCreateCharacter(args: Record<string, unknown>): Promise<Too
     return { name: "创建角色", success: true, data: `已创建角色 ${newChar.name} (${newChar.id})${briefPersona ? "，含简量人设" : ""}` };
 }
 
-async function handleUpdateCharacterField(args: Record<string, unknown>): Promise<ToolResult> {
+async function handleUpdateCharacterField(args: Record<string, unknown>, ctx: MascotToolContext): Promise<ToolResult> {
     const { loadCharacters, saveCharacters } = await import("./character-storage");
+    const { backupCharacterVersion, getCharacterCurrentVersion } = await import("./character-version-storage");
     const chars = loadCharacters();
     const idx = chars.findIndex((c) => c.name === args.name);
     if (idx < 0) return { name: "更新角色字段", success: false, error: `找不到角色：${args.name}` };
@@ -1546,10 +1549,22 @@ async function handleUpdateCharacterField(args: Record<string, unknown>): Promis
     } else {
         return { name: "更新角色字段", success: false, error: `不支持的字段：${field}` };
     }
+    // 一条用户消息触发的整轮小卷任务中，同一角色只在第一次写入前备份。
+    const backupIds = ctx.characterBackupIds ?? (ctx.characterBackupIds = new Set<string>());
+    const didBackup = !backupIds.has(chars[idx].id);
+    const nextVersion = didBackup
+        ? backupCharacterVersion(chars[idx], "mascot", "小卷本次任务修改前自动备份")
+        : getCharacterCurrentVersion(chars[idx].id);
+    backupIds.add(chars[idx].id);
+
     char.updatedAt = now;
     chars[idx] = char as typeof chars[number];
     saveCharacters(chars);
-    return { name: "更新角色字段", success: true, data: `已更新 ${args.name} 的 ${field}` };
+    return {
+        name: "更新角色字段",
+        success: true,
+        data: `${didBackup ? "已为本次任务自动备份旧卡，并" : "本次任务已备份，继续"}更新 ${args.name} 的 ${field}；当前版本 V${nextVersion}`,
+    };
 }
 
 // ── Worldbook Handlers ──────────────────────────
@@ -1767,6 +1782,14 @@ async function handleAddCharacterRelation(args: Record<string, unknown>): Promis
     const to = await resolveCharacterIdByName(toName);
     if (!to) return { name: "添加关系", success: false, error: `找不到角色：${toName}。用「读取角色」确认名称。` };
     if (from.id === to.id) return { name: "添加关系", success: false, error: "不能给角色自己建立关系" };
+    // 存储层对非成员会静默拒绝——先查成员资格，别报假成功
+    const { loadCharacterWorldGroups } = await import("./character-world-storage");
+    const group = loadCharacterWorldGroups().find((g) => g.id === world.id);
+    const memberSet = new Set(group?.memberIds ?? []);
+    const missing = [from, to].filter((c) => !memberSet.has(c.id)).map((c) => c.name);
+    if (missing.length > 0) {
+        return { name: "添加关系", success: false, error: `${missing.join("、")}不在世界「${world.name}」里。先用「移动角色到世界」把角色移进去。` };
+    }
     addCharacterWorldRelation(world.id, from.id, to.id, label);
     return { name: "添加关系", success: true, data: `已添加关系：${from.name} 是 ${to.name} 的${label}（世界：${world.name}）` };
 }
