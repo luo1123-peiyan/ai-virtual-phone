@@ -187,6 +187,14 @@ export class WhiteNoiseEngine {
     if (ctx.state === "suspended") void ctx.resume();
   }
 
+  /** 设置总音量 0-1（总开关关闭时可传 0 静音全部） */
+  setMasterVolume(volume: number): void {
+    if (typeof window === "undefined") return;
+    const ctx = this.ensureContext();
+    const clamped = Math.max(0, Math.min(1, volume));
+    this.master?.gain.setTargetAtTime(clamped, ctx.currentTime, 0.1);
+  }
+
   stopChannel(id: WhiteNoiseId): void {
     const voice = this.voices.get(id);
     if (!voice) return;
