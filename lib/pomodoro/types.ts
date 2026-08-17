@@ -90,3 +90,24 @@ export type PomodoroDailyStat = {
   count: number;       // 完成的番茄数
   totalSeconds: number;
 };
+
+/** 连续奖励：每完成一个番茄发一枚可收集的小物件 */
+export type PomodoroReward = {
+  id: string;
+  itemId: string;   // 物件种类 id
+  emoji: string;
+  name: string;
+  earnedAt: string; // ISO
+};
+
+/** 奖励池（带权重，越可爱越稀有）。奖励按完成量掉落，不按连续签到，断一天也不清零。 */
+export const REWARD_POOL: { itemId: string; emoji: string; name: string; weight: number }[] = [
+  { itemId: "plant", emoji: "🪴", name: "小盆栽", weight: 22 },
+  { itemId: "book", emoji: "📗", name: "小书本", weight: 20 },
+  { itemId: "candle", emoji: "🕯️", name: "香薰蜡烛", weight: 16 },
+  { itemId: "cup", emoji: "🧋", name: "奶茶", weight: 14 },
+  { itemId: "star", emoji: "⭐", name: "小星星", weight: 12 },
+  { itemId: "cat", emoji: "🐱", name: "小猫咪", weight: 8 },
+  { itemId: "crystal", emoji: "🔮", name: "水晶球", weight: 5 },
+  { itemId: "cake", emoji: "🍰", name: "小蛋糕", weight: 3 },
+];
