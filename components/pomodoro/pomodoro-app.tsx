@@ -12,6 +12,8 @@ import {
   aggregateDailyStats,
   getTodayPomodoroCount,
   getStreakDays,
+  aggregateRewards,
+  getRewardTotal,
 } from "@/lib/pomodoro/storage";
 import {
   DEFAULT_POMODORO_SETTINGS,
@@ -75,8 +77,16 @@ export default function PomodoroApp({ onClose }: Props) {
 
   const {
     phase, remaining, running, round, completedFocus, chat, progress,
+    lastReward, clearLastReward,
     start, pause, resume, stop, sendUserMessage,
   } = usePomodoro({ settings, taskLabel });
+
+  // 奖励弹层：拿到新奖励时弹出，2.6s 后自动消失
+  useEffect(() => {
+    if (!lastReward) return;
+    const t = window.setTimeout(() => clearLastReward(), 2600);
+    return () => window.clearTimeout(t);
+  }, [lastReward, clearLastReward]);
 
   const companion = useMemo(
     () => characters.find((c) => c.id === settings.companionCharacterId) || null,
@@ -115,6 +125,8 @@ export default function PomodoroApp({ onClose }: Props) {
   const todayCount = getTodayPomodoroCount() + completedFocus;
   const streak = getStreakDays();
   const dailyStats = useMemo(() => aggregateDailyStats(7), [completedFocus, tab]);
+  const rewards = useMemo(() => aggregateRewards(), [completedFocus, tab, lastReward]);
+  const rewardTotal = getRewardTotal();
   const maxCount = Math.max(1, ...dailyStats.map((d) => d.count));
 
   // ── 环形进度 ──
