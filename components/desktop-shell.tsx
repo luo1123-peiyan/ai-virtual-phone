@@ -513,9 +513,10 @@ function normalizeLayout(raw: unknown, widgets: WidgetInstance[], dockIds: Set<D
   for (const id of allDefaults) {
     if (allPlaced.has(id) || dockIds.has(id)) continue;
     const primaryPage = PAGE_1_DEFAULT.includes(id) ? 1 : PAGE_2_DEFAULT.includes(id) ? 2 : PAGE_3_DEFAULT.includes(id) ? 3 : 1;
-    const fallbackPages = getDesktopPageKeysForState(layout, widgets)
-      .map(getDesktopPageNumber)
-      .filter((page) => page !== primaryPage);
+    const knownPages = getDesktopPageKeysForState(layout, widgets).map(getDesktopPageNumber);
+    const nextPage = Math.max(2, ...knownPages) + 1;
+    const fallbackPages = [...knownPages, nextPage]
+      .filter((page, index, pages) => page !== primaryPage && pages.indexOf(page) === index);
     for (const page of [primaryPage, ...fallbackPages]) {
       const pageKey = getDesktopPageKey(page);
       ensureDesktopPage(layout, pageKey);
@@ -1491,8 +1492,9 @@ export function DesktopShell({ initialThemeProfile, initialThemeAssets }: Deskto
           setLayout(sane.layout);
           if (sane.changed) {
             writeDesktopFolders(sane.folders);
-            kvSet(ICON_LAYOUT_STORAGE_KEY, JSON.stringify(sane.layout));
           }
+          // Persist default-icon recovery too, including icons placed on a new page.
+          kvSet(ICON_LAYOUT_STORAGE_KEY, JSON.stringify(sane.layout));
           setDesktopReady(true);
           return;
         } catch {}
