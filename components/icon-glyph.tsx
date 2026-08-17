@@ -38,6 +38,7 @@ import {
   mdiHome,
   mdiHammerWrench,
   mdiStorefrontOutline,
+  mdiTimerSand,
 } from "@mdi/js";
 
 type IconGlyphProps = {
@@ -73,6 +74,7 @@ const MDI_PATHS: Record<IconId, string> = {
   resource_hub: mdiStorefrontOutline,
   characters: mdiAccount,
   dwelling: mdiHome,
+  pomodoro: mdiTimerSand,
 };
 
 export function IconGlyph({ id, className }: IconGlyphProps) {
