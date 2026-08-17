@@ -1,5 +1,6 @@
 "use client";
 // 番茄钟主界面：环形倒计时 + 角色陪伴 + 白噪音混音 + 统计/番茄树。
+// UI 版本：ins 风白噪音（总控卡片 + 每音轨独立胶囊开关 + 音量百分比）。
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { PageShell } from "@/components/ui/page-shell";
