@@ -180,6 +180,13 @@ export class WhiteNoiseEngine {
     voice.gain.gain.setTargetAtTime(clamped, ctx.currentTime, 0.15);
   }
 
+  /** 在用户手势中解锁/恢复音频上下文（移动端 autoplay 限制必须在点击里同步调用） */
+  resume(): void {
+    if (typeof window === "undefined") return;
+    const ctx = this.ensureContext();
+    if (ctx.state === "suspended") void ctx.resume();
+  }
+
   stopChannel(id: WhiteNoiseId): void {
     const voice = this.voices.get(id);
     if (!voice) return;
