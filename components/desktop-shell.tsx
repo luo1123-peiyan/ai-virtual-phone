@@ -3874,6 +3874,10 @@ html,body{margin:0;padding:0;width:100%;height:100%;background:#121110;color:rgb
       return <MusicApp onClose={() => setActiveApp(null)} />;
     }
 
+    if (activeApp === "pomodoro") {
+      return <PomodoroApp onClose={() => setActiveApp(null)} />;
+    }
+
     if (activeApp === "calendar") {
       return <PhoneCalendarApp onClose={() => setActiveApp(null)} onNotice={setNotice} />;
     }
