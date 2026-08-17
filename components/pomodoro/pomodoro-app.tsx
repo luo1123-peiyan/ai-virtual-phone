@@ -55,14 +55,17 @@ export default function PomodoroApp({ onClose }: Props) {
     savePomodoroSettings(settings);
   }, [settings]);
 
-  // 白噪音引擎：跟随设置里的开关/音量
+  // 白噪音引擎：跟随设置里的总开关/总音量/各音轨开关/音量
   useEffect(() => {
     if (!noiseEngineRef.current) noiseEngineRef.current = new WhiteNoiseEngine();
     const engine = noiseEngineRef.current;
+    // 总音量：总开关关闭时整体静音
+    engine.setMasterVolume(settings.noiseMasterEnabled ? settings.noiseMasterVolume : 0);
     for (const ch of settings.whiteNoise) {
-      engine.setChannel(ch.id, ch.enabled ? ch.volume : 0);
+      const on = settings.noiseMasterEnabled && ch.enabled;
+      engine.setChannel(ch.id, on ? ch.volume : 0);
     }
-  }, [settings.whiteNoise]);
+  }, [settings.whiteNoise, settings.noiseMasterEnabled, settings.noiseMasterVolume]);
 
   useEffect(() => () => {
     noiseEngineRef.current?.dispose();
@@ -85,16 +88,27 @@ export default function PomodoroApp({ onClose }: Props) {
   }, [chat.length]);
 
   const toggleNoise = (id: WhiteNoiseId) => {
+    // 必须在用户手势里同步解锁 AudioContext，否则移动端浏览器不出声
+    noiseEngineRef.current?.resume();
     setSettings((s) => ({
       ...s,
       whiteNoise: s.whiteNoise.map((ch) => (ch.id === id ? { ...ch, enabled: !ch.enabled } : ch)),
     }));
   };
   const setNoiseVolume = (id: WhiteNoiseId, volume: number) => {
+    noiseEngineRef.current?.resume();
     setSettings((s) => ({
       ...s,
       whiteNoise: s.whiteNoise.map((ch) => (ch.id === id ? { ...ch, volume } : ch)),
     }));
+  };
+  const toggleNoiseMaster = () => {
+    noiseEngineRef.current?.resume();
+    setSettings((s) => ({ ...s, noiseMasterEnabled: !s.noiseMasterEnabled }));
+  };
+  const setNoiseMasterVolume = (volume: number) => {
+    noiseEngineRef.current?.resume();
+    setSettings((s) => ({ ...s, noiseMasterVolume: volume }));
   };
 
   const todayCount = getTodayPomodoroCount() + completedFocus;
