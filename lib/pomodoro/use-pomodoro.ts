@@ -6,8 +6,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Character } from "../character-types";
 import { loadCharacters } from "../character-storage";
 import { resolveUserIdentity } from "../settings-storage";
-import type { PomodoroPhase, PomodoroSettings } from "./types";
-import { addPomodoroRecord } from "./storage";
+import type { PomodoroPhase, PomodoroSettings, PomodoroReward } from "./types";
+import { addPomodoroRecord, grantPomodoroReward } from "./storage";
 import {
   requestCompanionMessage,
   recordFocusMemory,
@@ -44,6 +44,10 @@ export function usePomodoro({ settings, taskLabel }: UsePomodoroArgs) {
   const [round, setRound] = useState(1); // 当前第几轮 focus（1-based）
   const [completedFocus, setCompletedFocus] = useState(0); // 本次会话累计完成的 focus 数
   const [chat, setChat] = useState<CompanionChatItem[]>([]);
+  const [lastReward, setLastReward] = useState<PomodoroReward | null>(null);
+
+  // 后台可靠计时：记录当前阶段应结束的绝对时间戳，避免 setInterval 在后台被节流导致走时不准
+  const phaseEndsAtRef = useRef<number | null>(null);
 
   const settingsRef = useRef(settings);
   useEffect(() => { settingsRef.current = settings; }, [settings]);
@@ -119,7 +123,9 @@ export function usePomodoro({ settings, taskLabel }: UsePomodoroArgs) {
 
   const enterPhase = useCallback((next: PomodoroPhase) => {
     setPhase(next);
-    setRemaining(phaseDurationSec(next, settingsRef.current));
+    const dur = phaseDurationSec(next, settingsRef.current);
+    setRemaining(dur);
+    phaseEndsAtRef.current = next === "idle" ? null : Date.now() + dur * 1000;
     if (next === "focus") {
       scheduleCompanion();
       void triggerCompanion("start");
@@ -189,6 +195,9 @@ export function usePomodoro({ settings, taskLabel }: UsePomodoroArgs) {
         completedAt: new Date().toISOString(),
         round,
       });
+      // 连续奖励：完成一个番茄掉落一枚可收集小物件
+      const reward = grantPomodoroReward();
+      if (reward) setLastReward(reward);
       const done = completedFocus + 1;
       setCompletedFocus(done);
       void triggerCompanion("nearEnd");
@@ -201,21 +210,31 @@ export function usePomodoro({ settings, taskLabel }: UsePomodoroArgs) {
     }
   }, [phase, round, completedFocus, getCompanion, triggerCompanion, enterPhase]);
 
-  // 倒计时 tick
+  // 倒计时 tick：以绝对结束时间戳为准计算剩余，后台被节流也不会走时不准
   useEffect(() => {
     if (!running || phase === "idle") return;
-    tickRef.current = window.setInterval(() => {
-      setRemaining((prev) => {
-        if (prev <= 1) {
-          // 交给 advancePhase（下一 tick 外执行避免状态冲突）
-          window.setTimeout(() => advancePhase(), 0);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+    if (phaseEndsAtRef.current == null) {
+      phaseEndsAtRef.current = Date.now() + phaseDurationSec(phase, settingsRef.current) * 1000;
+    }
+    let advanced = false;
+    const syncFromClock = () => {
+      const endsAt = phaseEndsAtRef.current;
+      if (endsAt == null) return;
+      const secLeft = Math.max(0, Math.round((endsAt - Date.now()) / 1000));
+      setRemaining(secLeft);
+      if (secLeft <= 0 && !advanced) {
+        advanced = true;
+        window.setTimeout(() => advancePhase(), 0);
+      }
+    };
+    syncFromClock();
+    tickRef.current = window.setInterval(syncFromClock, 1000);
+    // 回到前台时立刻对表，纠正后台节流造成的偏差
+    const onVisible = () => { if (document.visibilityState === "visible") syncFromClock(); };
+    document.addEventListener("visibilitychange", onVisible);
     return () => {
       if (tickRef.current) { window.clearInterval(tickRef.current); tickRef.current = null; }
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, [running, phase, advancePhase]);
 
@@ -229,6 +248,7 @@ export function usePomodoro({ settings, taskLabel }: UsePomodoroArgs) {
 
   return {
     phase, remaining, running, round, completedFocus, chat, progress,
+    lastReward, clearLastReward: () => setLastReward(null),
     start, pause, resume, stop, sendUserMessage,
   };
 }
