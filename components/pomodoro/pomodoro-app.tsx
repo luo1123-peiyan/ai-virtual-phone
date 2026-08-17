@@ -130,8 +130,6 @@ export default function PomodoroApp({ onClose }: Props) {
   const R = 125;
   const C = 2 * Math.PI * R;
   const dash = C * (1 - progress);
-  // 蓝白 ins 柔和环形色
-  const ringColor = phase === "focus" ? "#6BA4E8" : phase === "idle" ? "#D3E2F4" : "#5BBFBA";
 
   const handleSend = () => {
     const text = draft.trim();
