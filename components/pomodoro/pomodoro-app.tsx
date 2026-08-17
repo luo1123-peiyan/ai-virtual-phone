@@ -245,6 +245,29 @@ export default function PomodoroApp({ onClose }: Props) {
 
       {tab === "noise" && (
         <div style={{ padding: "8px 16px 24px", display: "flex", flexDirection: "column", gap: 12 }}>
+          {/* 白噪音总开关 + 总音量 */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", borderRadius: 12, background: "rgba(255,107,107,0.08)" }}>
+            <span style={{ fontSize: 15, color: "#444", fontWeight: 600 }}>白噪音总开关</span>
+            <button type="button" onClick={toggleNoiseMaster} style={{
+              width: 46, height: 26, borderRadius: 999, border: "none", cursor: "pointer", position: "relative",
+              background: settings.noiseMasterEnabled ? "#FF6B6B" : "rgba(0,0,0,0.15)", transition: "background 0.2s",
+            }}>
+              <span style={{
+                position: "absolute", top: 3, left: settings.noiseMasterEnabled ? 23 : 3, width: 20, height: 20, borderRadius: "50%",
+                background: "#fff", transition: "left 0.2s",
+              }} />
+            </button>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 12px", opacity: settings.noiseMasterEnabled ? 1 : 0.4 }}>
+            <span style={{ fontSize: 18 }}>🔊</span>
+            <span style={{ width: 56, fontSize: 14, color: "#444" }}>总音量</span>
+            <input
+              type="range" min={0} max={1} step={0.05} value={settings.noiseMasterVolume}
+              onChange={(e) => setNoiseMasterVolume(Number(e.target.value))}
+              disabled={!settings.noiseMasterEnabled}
+              style={{ flex: 1 }}
+            />
+          </div>
           <p style={{ fontSize: 13, color: "#999", textAlign: "center" }}>可同时开启多个叠加混音</p>
           {settings.whiteNoise.map((ch) => {
             const meta = WHITE_NOISE_META[ch.id];
