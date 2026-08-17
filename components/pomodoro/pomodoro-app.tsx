@@ -244,46 +244,98 @@ export default function PomodoroApp({ onClose }: Props) {
       )}
 
       {tab === "noise" && (
-        <div style={{ padding: "8px 16px 24px", display: "flex", flexDirection: "column", gap: 12 }}>
-          {/* 白噪音总开关 + 总音量 */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", borderRadius: 12, background: "rgba(255,107,107,0.08)" }}>
-            <span style={{ fontSize: 15, color: "#444", fontWeight: 600 }}>白噪音总开关</span>
-            <button type="button" onClick={toggleNoiseMaster} style={{
-              width: 46, height: 26, borderRadius: 999, border: "none", cursor: "pointer", position: "relative",
-              background: settings.noiseMasterEnabled ? "#FF6B6B" : "rgba(0,0,0,0.15)", transition: "background 0.2s",
-            }}>
-              <span style={{
-                position: "absolute", top: 3, left: settings.noiseMasterEnabled ? 23 : 3, width: 20, height: 20, borderRadius: "50%",
-                background: "#fff", transition: "left 0.2s",
-              }} />
-            </button>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 12px", opacity: settings.noiseMasterEnabled ? 1 : 0.4 }}>
-            <span style={{ fontSize: 18 }}>🔊</span>
-            <span style={{ width: 56, fontSize: 14, color: "#444" }}>总音量</span>
-            <input
-              type="range" min={0} max={1} step={0.05} value={settings.noiseMasterVolume}
-              onChange={(e) => setNoiseMasterVolume(Number(e.target.value))}
-              disabled={!settings.noiseMasterEnabled}
-              style={{ flex: 1 }}
-            />
-          </div>
-          <p style={{ fontSize: 13, color: "#999", textAlign: "center" }}>可同时开启多个叠加混音</p>
-          {settings.whiteNoise.map((ch) => {
-            const meta = WHITE_NOISE_META[ch.id];
-            return (
-              <div key={ch.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", borderRadius: 12, background: ch.enabled ? "rgba(255,107,107,0.08)" : "rgba(0,0,0,0.03)" }}>
-                <button type="button" onClick={() => toggleNoise(ch.id)} style={{ fontSize: 22, background: "none", border: "none", cursor: "pointer", opacity: ch.enabled ? 1 : 0.4 }}>{meta.icon}</button>
-                <span style={{ width: 56, fontSize: 14, color: "#444" }}>{meta.label}</span>
-                <input
-                  type="range" min={0} max={1} step={0.05} value={ch.volume}
-                  onChange={(e) => setNoiseVolume(ch.id, Number(e.target.value))}
-                  disabled={!ch.enabled}
-                  style={{ flex: 1 }}
-                />
+        <div style={{ padding: "12px 16px 28px", display: "flex", flexDirection: "column", gap: 14 }}>
+          {/* 顶栏：白噪音总控制卡片 */}
+          <div style={{
+            padding: "14px 16px", borderRadius: 16,
+            background: "linear-gradient(135deg, rgba(224,139,152,0.12) 0%, rgba(255,240,243,0.6) 100%)",
+            border: "1px solid rgba(224,139,152,0.2)",
+            boxShadow: "0 2px 10px rgba(224,139,152,0.05)",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: settings.noiseMasterEnabled ? 12 : 0 }}>
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 600, color: "#4A3E42" }}>白噪音总开关</div>
+                <div style={{ fontSize: 12, color: "#9E8A90", marginTop: 2 }}>{settings.noiseMasterEnabled ? "混音已启用" : "已全局静音"}</div>
               </div>
-            );
-          })}
+              <button type="button" onClick={toggleNoiseMaster} style={{
+                width: 48, height: 26, borderRadius: 999, border: "none", cursor: "pointer", position: "relative",
+                background: settings.noiseMasterEnabled ? "#E08B98" : "rgba(0,0,0,0.12)", transition: "background 0.25s ease",
+                boxShadow: settings.noiseMasterEnabled ? "0 2px 8px rgba(224,139,152,0.3)" : "none",
+              }}>
+                <span style={{
+                  position: "absolute", top: 3, left: settings.noiseMasterEnabled ? 25 : 3, width: 20, height: 20, borderRadius: "50%",
+                  background: "#fff", transition: "left 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
+                }} />
+              </button>
+            </div>
+            {settings.noiseMasterEnabled && (
+              <div style={{ display: "flex", alignItems: "center", gap: 12, paddingTop: 4 }}>
+                <span style={{ fontSize: 16, color: "#E08B98" }}>🔊</span>
+                <input
+                  type="range" min={0} max={1} step={0.05} value={settings.noiseMasterVolume}
+                  onChange={(e) => setNoiseMasterVolume(Number(e.target.value))}
+                  style={{ flex: 1, accentColor: "#E08B98" }}
+                />
+                <span style={{ fontSize: 12, color: "#888", width: 32, textAlign: "right" }}>{Math.round(settings.noiseMasterVolume * 100)}%</span>
+              </div>
+            )}
+          </div>
+
+          <div style={{ fontSize: 12, color: "#B09CA2", textAlign: "center", letterSpacing: 0.5 }}>
+            ─ 多音轨自由叠加 · 专属专注环境音 ─
+          </div>
+
+          {/* 各音轨 ins 极简卡片列表 */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {settings.whiteNoise.map((ch) => {
+              const meta = WHITE_NOISE_META[ch.id];
+              const isActive = settings.noiseMasterEnabled && ch.enabled;
+              return (
+                <div key={ch.id} style={{
+                  padding: "12px 14px", borderRadius: 14,
+                  background: isActive ? "rgba(224,139,152,0.08)" : "rgba(0,0,0,0.02)",
+                  border: isActive ? "1px solid rgba(224,139,152,0.25)" : "1px solid rgba(0,0,0,0.04)",
+                  transition: "all 0.25s ease",
+                  display: "flex", flexDirection: "column", gap: isActive ? 10 : 0,
+                }}>
+                  {/* 音轨标题栏：图标 + 名字 + ins胶囊开关 */}
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <span style={{ fontSize: 20, opacity: isActive ? 1 : 0.4, transition: "opacity 0.2s" }}>{meta.icon}</span>
+                      <span style={{ fontSize: 14, fontWeight: 500, color: isActive ? "#4A3E42" : "#777" }}>{meta.label}</span>
+                    </div>
+                    {/* 每个音轨的独立 ins 风胶囊开关 */}
+                    <button type="button" onClick={() => toggleNoise(ch.id)} style={{
+                      width: 44, height: 24, borderRadius: 999, border: "none", cursor: "pointer", position: "relative",
+                      background: ch.enabled ? "#E08B98" : "rgba(0,0,0,0.12)", transition: "background 0.25s ease",
+                      opacity: settings.noiseMasterEnabled ? 1 : 0.5,
+                    }}>
+                      <span style={{
+                        position: "absolute", top: 2, left: ch.enabled ? 22 : 2, width: 20, height: 20, borderRadius: "50%",
+                        background: "#fff", transition: "left 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+                        boxShadow: "0 1px 3px rgba(0,0,0,0.12)",
+                      }} />
+                    </button>
+                  </div>
+
+                  {/* 开启时展现音量滑块 */}
+                  {ch.enabled && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, opacity: settings.noiseMasterEnabled ? 1 : 0.4 }}>
+                      <span style={{ fontSize: 11, color: "#B09CA2" }}>音量</span>
+                      <input
+                        type="range" min={0} max={1} step={0.05} value={ch.volume}
+                        onChange={(e) => setNoiseVolume(ch.id, Number(e.target.value))}
+                        disabled={!settings.noiseMasterEnabled}
+                        style={{ flex: 1, accentColor: "#E08B98" }}
+                      />
+                      <span style={{ fontSize: 11, color: "#9E8A90", width: 28, textAlign: "right" }}>{Math.round(ch.volume * 100)}%</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
