@@ -103,7 +103,7 @@ export const ICONS: Record<IconId, IconMeta> = {
   vnchapters: { id: "vnchapters", label: "章节", tone: "var(--c-icon-rose)", placeholder: true },
   moments: { id: "moments", label: "\u670B\u53CB\u5708", tone: "var(--c-icon-lilac)", placeholder: false },
   group_chat: { id: "group_chat", label: "\u7FA4\u804A", tone: "var(--c-icon-teal)", placeholder: false },
-  pomodoro: { id: "pomodoro", label: "番茄钟", tone: "var(--c-icon-coral, #FF6B6B)", placeholder: false },
+  pomodoro: { id: "pomodoro", label: "番茄钟", tone: "var(--c-icon-rose, #e08b98)", placeholder: false },
   settings: { id: "settings", label: "设置", tone: "var(--c-icon-slate)", placeholder: false },
   theme: { id: "theme", label: "\u4E3B\u9898", tone: "var(--c-icon-violet)", placeholder: true },
   resources: { id: "resources", label: "\u8D44\u6E90\u5E93", tone: "var(--c-icon-teal)", placeholder: false },
