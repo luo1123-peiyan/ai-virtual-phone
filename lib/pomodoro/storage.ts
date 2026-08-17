@@ -2,15 +2,18 @@
 // 番茄钟的设置、每日统计与番茄记录持久化（localStorage / kv-db）。
 
 import { kvGet, kvSet, registerKvMigration, registerDynamicPrefix } from "../kv-db";
-import type { PomodoroSettings, PomodoroRecord, PomodoroDailyStat } from "./types";
-import { DEFAULT_POMODORO_SETTINGS } from "./types";
+import type { PomodoroSettings, PomodoroRecord, PomodoroDailyStat, PomodoroReward } from "./types";
+import { DEFAULT_POMODORO_SETTINGS, REWARD_POOL } from "./types";
 
 const SETTINGS_KEY = "ai_phone_pomodoro_settings_v1";
 const RECORDS_KEY = "ai_phone_pomodoro_records_v1";
+const REWARDS_KEY = "ai_phone_pomodoro_rewards_v1";
 const MAX_RECORDS = 500;
+const MAX_REWARDS = 999;
 
 registerKvMigration(SETTINGS_KEY);
 registerKvMigration(RECORDS_KEY);
+registerKvMigration(REWARDS_KEY);
 
 // ── 设置 ──
 
