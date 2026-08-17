@@ -107,6 +107,71 @@ export function getTodayPomodoroCount(): number {
   return loadPomodoroRecords().filter((r) => localDateKey(r.completedAt) === todayKey).length;
 }
 
+// ── 连续奖励（收集小物件） ──
+
+export function loadPomodoroRewards(): PomodoroReward[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = kvGet(REWARDS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (r): r is PomodoroReward =>
+        Boolean(r) &&
+        typeof (r as PomodoroReward).id === "string" &&
+        typeof (r as PomodoroReward).earnedAt === "string",
+    );
+  } catch {
+    return [];
+  }
+}
+
+/** 按权重随机抽一个奖励物件 */
+function drawRewardItem(): { itemId: string; emoji: string; name: string } {
+  const total = REWARD_POOL.reduce((sum, it) => sum + it.weight, 0);
+  let roll = Math.random() * total;
+  for (const it of REWARD_POOL) {
+    roll -= it.weight;
+    if (roll <= 0) return { itemId: it.itemId, emoji: it.emoji, name: it.name };
+  }
+  const fallback = REWARD_POOL[0];
+  return { itemId: fallback.itemId, emoji: fallback.emoji, name: fallback.name };
+}
+
+/** 完成一个番茄，掉落一枚奖励并持久化，返回新奖励 */
+export function grantPomodoroReward(): PomodoroReward | null {
+  if (typeof window === "undefined") return null;
+  const item = drawRewardItem();
+  const reward: PomodoroReward = {
+    id: `rw_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    itemId: item.itemId,
+    emoji: item.emoji,
+    name: item.name,
+    earnedAt: new Date().toISOString(),
+  };
+  const next = [reward, ...loadPomodoroRewards()].slice(0, MAX_REWARDS);
+  kvSet(REWARDS_KEY, JSON.stringify(next));
+  return reward;
+}
+
+/** 奖励总数 */
+export function getRewardTotal(): number {
+  return loadPomodoroRewards().length;
+}
+
+/** 按物件种类聚合奖励数量（用于展示收集陈列） */
+export function aggregateRewards(): { itemId: string; emoji: string; name: string; count: number }[] {
+  const rewards = loadPomodoroRewards();
+  const byItem = new Map<string, { itemId: string; emoji: string; name: string; count: number }>();
+  for (const r of rewards) {
+    const cur = byItem.get(r.itemId) || { itemId: r.itemId, emoji: r.emoji, name: r.name, count: 0 };
+    cur.count += 1;
+    byItem.set(r.itemId, cur);
+  }
+  return REWARD_POOL.map((it) => byItem.get(it.itemId) || { itemId: it.itemId, emoji: it.emoji, name: it.name, count: 0 });
+}
+
 /** 连续打卡天数 */
 export function getStreakDays(): number {
   const records = loadPomodoroRecords();
