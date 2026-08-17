@@ -144,6 +144,23 @@ export default function PomodoroApp({ onClose }: Props) {
 
   return (
     <PageShell title="番茄钟" onBack={onClose} className="pomodoro-shell">
+      {/* 连续奖励弹层 */}
+      {lastReward && (
+        <div style={{
+          position: "absolute", top: 70, left: "50%", transform: "translateX(-50%)", zIndex: 50,
+          display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", borderRadius: 999,
+          background: "linear-gradient(135deg, #E08B98 0%, #F0B7C1 100%)", color: "#fff",
+          boxShadow: "0 6px 20px rgba(224,139,152,0.4)", animation: "pomoRewardPop 0.35s ease",
+        }}>
+          <span style={{ fontSize: 24 }}>{lastReward.emoji}</span>
+          <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.25 }}>
+            <span style={{ fontSize: 13, fontWeight: 600 }}>获得 {lastReward.name}</span>
+            <span style={{ fontSize: 11, opacity: 0.85 }}>完成一个番茄的奖励~</span>
+          </div>
+        </div>
+      )}
+      <style>{`@keyframes pomoRewardPop{0%{opacity:0;transform:translateX(-50%) translateY(-8px) scale(0.9)}100%{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}}`}</style>
+
       {/* Tab 切换 */}
       <div style={{ display: "flex", gap: 8, padding: "8px 12px", justifyContent: "center", flexWrap: "wrap" }}>
         {(["timer", "noise", "stats", "settings"] as Tab[]).map((t) => (
@@ -359,7 +376,7 @@ export default function PomodoroApp({ onClose }: Props) {
             <StatCard label="连续打卡" value={`${streak} 天`} />
           </div>
           <p style={{ fontSize: 13, color: "#999", marginBottom: 8 }}>近 7 天</p>
-          <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 140 }}>
+          <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 140, marginBottom: 20 }}>
             {dailyStats.map((d) => (
               <div key={d.date} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
                 <div style={{ fontSize: 11, color: "#666" }}>{d.count || ""}</div>
@@ -370,6 +387,34 @@ export default function PomodoroApp({ onClose }: Props) {
                 <div style={{ fontSize: 10, color: "#999" }}>{d.date.slice(5)}</div>
               </div>
             ))}
+          </div>
+
+          {/* 奖励收集陈列 */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+            <span style={{ fontSize: 13, color: "#4A3E42", fontWeight: 600 }}>我的收集</span>
+            <span style={{ fontSize: 12, color: "#E08B98" }}>共 {rewardTotal} 枚</span>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
+            {rewards.map((it) => {
+              const owned = it.count > 0;
+              return (
+                <div key={it.itemId} style={{
+                  padding: "12px 6px", borderRadius: 14, textAlign: "center",
+                  background: owned ? "rgba(224,139,152,0.08)" : "rgba(0,0,0,0.02)",
+                  border: owned ? "1px solid rgba(224,139,152,0.22)" : "1px solid rgba(0,0,0,0.04)",
+                  position: "relative",
+                }}>
+                  <div style={{ fontSize: 26, opacity: owned ? 1 : 0.28, filter: owned ? "none" : "grayscale(1)" }}>{it.emoji}</div>
+                  <div style={{ fontSize: 11, color: owned ? "#4A3E42" : "#BBB", marginTop: 4 }}>{it.name}</div>
+                  {owned && (
+                    <span style={{
+                      position: "absolute", top: 6, right: 6, fontSize: 10, color: "#fff",
+                      background: "#E08B98", borderRadius: 999, padding: "1px 6px", minWidth: 16,
+                    }}>{it.count}</span>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
