@@ -1492,8 +1492,9 @@ export function DesktopShell({ initialThemeProfile, initialThemeAssets }: Deskto
           setLayout(sane.layout);
           if (sane.changed) {
             writeDesktopFolders(sane.folders);
-            kvSet(ICON_LAYOUT_STORAGE_KEY, JSON.stringify(sane.layout));
           }
+          // Persist default-icon recovery too, including icons placed on a new page.
+          kvSet(ICON_LAYOUT_STORAGE_KEY, JSON.stringify(sane.layout));
           setDesktopReady(true);
           return;
         } catch {}
