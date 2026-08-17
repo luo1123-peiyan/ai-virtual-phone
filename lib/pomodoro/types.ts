@@ -34,6 +34,10 @@ export type PomodoroSettings = {
   /** 是否把专注事件沉淀进角色记忆库 */
   syncToMemory: boolean;
   // ── 白噪音 ──
+  /** 白噪音总开关（关闭时所有音轨都静音） */
+  noiseMasterEnabled: boolean;
+  /** 白噪音总音量 0-1 */
+  noiseMasterVolume: number;
   whiteNoise: WhiteNoiseChannel[];
 };
 
@@ -57,6 +61,8 @@ export const DEFAULT_POMODORO_SETTINGS: PomodoroSettings = {
   companionIntervalMinutes: 9,
   syncToChat: true,
   syncToMemory: true,
+  noiseMasterEnabled: true,
+  noiseMasterVolume: 0.8,
   whiteNoise: [
     { id: "rain", enabled: false, volume: 0.6 },
     { id: "heavyRain", enabled: false, volume: 0.6 },
