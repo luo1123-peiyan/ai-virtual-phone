@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import {
   ExternalLink,
   Globe2,
@@ -85,7 +85,7 @@ export function TavernApp({ onClose }: TavernAppProps) {
     window.open(normalized, "_blank", "noopener,noreferrer");
   }
 
-  function saveSettings(event: React.FormEvent<HTMLFormElement>) {
+  function saveSettings(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const normalizedUrl = normalizeTavernUrl(draftUrl);
 
