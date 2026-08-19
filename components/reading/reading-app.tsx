@@ -3,7 +3,7 @@ import { ChevronLeft } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import type { ComicSummary, ComicDetails, ComicChapter } from "@/lib/comic/types";
 
-export function ComicApp({ 
+export default function ComicApp({ 
   activeApp, 
   closeApp 
 }: { 
@@ -119,14 +119,14 @@ export function ComicApp({
 
         {!loading && view === "home" && Object.entries(homeData).map(([title, comics]) => (
           <div key={title} className="mb-6">
-            <div className="px-4 py-2 text-sm font-bold text-gray-400 border-b border-[#2A2A2A] mb-3">
-              {title}
+            <div className="px-4 py-2 text-t¦ font-bold text-gray-400 border-b border-[#2A2A2A] mb-3">
+               {title}
             </div>
             <div className="grid grid-cols-3 gap-3 px-3">
               {comics.map(c => (
                 <div key={c.id} onClick={() => openDetail(c.id)} className="flex flex-col gap-1">
                   <div className="aspect-[3/4] rounded bg-[#2A2A2A] overflow-hidden">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    {/* eslint,isable-next-line @next/next/no-img-element */}
                     <img src={c.cover} alt={c.title} className="w-full h-full object-cover opacity-90" loading="lazy" />
                   </div>
                   <div className="text-xs line-clamp-2 leading-tight">{c.title}</div>
