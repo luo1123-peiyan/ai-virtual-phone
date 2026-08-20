@@ -5,6 +5,7 @@ export type IconId =
   | "diary"
   | "music"
   | "reading"
+  | "comic"
   | "cocreate"
   | "story"
   | "game"
@@ -69,7 +70,7 @@ export const PAGE_2_DEFAULT: IconId[] = [
 ];
 
 // 第三页默认图标：右半边 2×2 排布（左半边留给日历组件），位置见 createDefaultDesktopIconLayout
-export const PAGE_3_DEFAULT: IconId[] = ["worldbuilder", "qa", "resource_hub", "pomodoro", "tavern"];
+export const PAGE_3_DEFAULT: IconId[] = ["worldbuilder", "qa", "resource_hub", "pomodoro", "tavern", "comic"];
 
 export const DOCK_DEFAULT: IconId[] = ["settings", "theme", "resources", "characters"];
 
@@ -78,6 +79,7 @@ export const ICONS: Record<IconId, IconMeta> = {
   diary: { id: "diary", label: "手记", tone: "var(--c-icon-violet)", placeholder: false },
   music: { id: "music", label: "音乐", tone: "var(--c-icon-coral)", placeholder: false },
   reading: { id: "reading", label: "阅读", tone: "var(--c-icon-amber)", placeholder: false },
+  comic: { id: "comic", label: "漫画", tone: "var(--c-icon-rose)", placeholder: false },
   cocreate: { id: "cocreate", label: "共创", tone: "var(--c-icon-cocreate, #c8b58a)", placeholder: false },
   story: { id: "story", label: "剧情", tone: "var(--c-icon-story, #8b6f52)", placeholder: false },
   game: { id: "game", label: "游戏", tone: "var(--c-icon-blue)", placeholder: false },
