@@ -550,34 +550,93 @@ export default function ComicApp({ onClose }: Props) {
             分类
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto pb-4">
-          {loading && <p className="py-6 text-center text-sm text-gray-400">正在加载...</p>}
-          {error && (
-            <div className="m-3 rounded-lg bg-red-50 p-3 text-sm text-red-600">
-              加载失败：{error}
-              <button type="button" onClick={() => void loadHome()} className="ml-2 underline">重试</button>
-            </div>
-          )}
-          {!loading &&
-            Object.entries(home).map(([section, comics]) =>
-              comics.length === 0 ? null : (
-                <section key={section} className="mt-2 bg-white px-3 py-3">
-                  <div className="mb-2 flex items-center gap-2">
-                    <span className="text-sm font-bold text-gray-800">{section}</span>
-                    <span className="rounded-full bg-blue-100 px-2 text-xs text-blue-600">{comics.length}</span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-3">
-                    {comics.slice(0, 9).map((comic) => (
-                      <Cover key={comic.id} comic={comic} onOpen={() => void openDetail(comic, "explore")} />
-                    ))}
-                  </div>
-                </section>
-              ),
+        {exploreTab === "recommend" ? (
+          <div className="flex-1 overflow-y-auto pb-4">
+            {loading && <p className="py-6 text-center text-sm text-gray-400">正在加载...</p>}
+            {error && (
+              <div className="m-3 rounded-lg bg-red-50 p-3 text-sm text-red-600">
+                加载失败：{error}
+                <button type="button" onClick={() => void loadHome()} className="ml-2 underline">重试</button>
+              </div>
             )}
-          {!loading && !error && Object.keys(home).length === 0 && (
-            <p className="py-10 text-center text-sm text-gray-400">暂无内容</p>
-          )}
-        </div>
+            {!loading &&
+              Object.entries(home).map(([section, comics]) =>
+                comics.length === 0 ? null : (
+                  <section key={section} className="mt-2 bg-white px-3 py-3">
+                    <div className="mb-2 flex items-center gap-2">
+                      <span className="text-sm font-bold text-gray-800">{section}</span>
+                      <span className="rounded-full bg-blue-100 px-2 text-xs text-blue-600">{comics.length}</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                      {comics.slice(0, 9).map((comic) => (
+                        <Cover key={comic.id} comic={comic} onOpen={() => void openDetail(comic, "explore")} />
+                      ))}
+                    </div>
+                  </section>
+                ),
+              )}
+            {!loading && !error && Object.keys(home).length === 0 && (
+              <p className="py-10 text-center text-sm text-gray-400">暂无内容</p>
+            )}
+          </div>
+        ) : (
+          <div className="flex flex-1 flex-col overflow-hidden">
+            {/* 排序 */}
+            <div className="flex flex-none gap-2 px-3 pt-2">
+              {ORDERINGS.map((o) => (
+                <button
+                  key={o.value}
+                  type="button"
+                  onClick={() => selectOrdering(o.value)}
+                  className={"rounded-full px-3 py-1 text-xs " + (ordering === o.value ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600")}
+                >
+                  {o.name}
+                </button>
+              ))}
+            </div>
+            {/* 题材 */}
+            <div className="flex flex-none flex-wrap gap-1.5 px-3 py-2">
+              {THEMES.map((t) => (
+                <button
+                  key={t.word || "all"}
+                  type="button"
+                  onClick={() => selectTheme(t.word)}
+                  className={"rounded-full px-3 py-1 text-xs " + (theme === t.word ? "bg-blue-100 font-bold text-blue-700" : "bg-gray-50 text-gray-500")}
+                >
+                  {t.name}
+                </button>
+              ))}
+            </div>
+            <div className="flex-1 overflow-y-auto p-3">
+              {catError && (
+                <div className="mb-3 rounded-lg bg-red-50 p-3 text-sm text-red-600">
+                  加载失败：{catError}
+                  <button type="button" onClick={() => void loadCategory(theme, ordering, 1, false)} className="ml-2 underline">重试</button>
+                </div>
+              )}
+              {catComics.length > 0 && (
+                <div className="grid grid-cols-3 gap-3">
+                  {catComics.map((comic) => (
+                    <Cover key={comic.id} comic={comic} onOpen={() => void openDetail(comic, "explore")} />
+                  ))}
+                </div>
+              )}
+              {catLoading && <p className="py-6 text-center text-sm text-gray-400">正在加载...</p>}
+              {!catLoading && !catError && catComics.length === 0 && (
+                <p className="py-10 text-center text-sm text-gray-400">该分类暂无内容</p>
+              )}
+              {!catLoading && canLoadMore && (
+                <button
+                  type="button"
+                  onClick={() => void loadCategory(theme, ordering, catPage + 1, true)}
+                  className="mx-auto mt-4 block rounded-full bg-gray-100 px-6 py-2 text-sm text-gray-600"
+                >
+                  加载更多（{catComics.length}/{catTotal}）
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     );
   }
