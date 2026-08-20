@@ -515,6 +515,7 @@ export default function ComicApp({ onClose }: Props) {
   }
 
   function renderExplore() {
+    const canLoadMore = catComics.length < catTotal;
     return (
       <div className="flex flex-1 flex-col overflow-hidden pt-6">
         <div className="flex flex-none items-center gap-2 border-b px-3 pb-2 pt-2">
@@ -522,8 +523,31 @@ export default function ComicApp({ onClose }: Props) {
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
           </button>
           <span className="text-base font-bold text-gray-800">拷贝漫画</span>
-          <button type="button" onClick={() => void loadHome()} className="ml-auto text-gray-400" aria-label="刷新">
+          <button
+            type="button"
+            onClick={() => (exploreTab === "recommend" ? void loadHome() : void loadCategory(theme, ordering, 1, false))}
+            className="ml-auto text-gray-400"
+            aria-label="刷新"
+          >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36" /><path d="M21 3v6h-6" /></svg>
+          </button>
+        </div>
+
+        {/* 推荐 / 分类 切换 */}
+        <div className="flex flex-none gap-6 border-b px-4 pt-2">
+          <button
+            type="button"
+            onClick={() => switchExploreTab("recommend")}
+            className={"pb-2 text-sm font-bold " + (exploreTab === "recommend" ? "border-b-2 border-blue-600 text-blue-600" : "text-gray-400")}
+          >
+            推荐
+          </button>
+          <button
+            type="button"
+            onClick={() => switchExploreTab("category")}
+            className={"pb-2 text-sm font-bold " + (exploreTab === "category" ? "border-b-2 border-blue-600 text-blue-600" : "text-gray-400")}
+          >
+            分类
           </button>
         </div>
         <div className="flex-1 overflow-y-auto pb-4">
