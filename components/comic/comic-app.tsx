@@ -298,6 +298,7 @@ export default function ComicApp({ onClose }: Props) {
   const [exploreTab, setExploreTab] = useState<ExploreTab>("recommend");
   const [theme, setTheme] = useState("");
   const [ordering, setOrdering] = useState("-datetime_updated");
+  const [region, setRegion] = useState(""); // 拷贝漫画地区（日漫/韩漫/美漫/已完结）
   const [catComics, setCatComics] = useState<Comic[]>([]);
   const [catPage, setCatPage] = useState(1);
   const [catTotal, setCatTotal] = useState(0);
@@ -335,11 +336,14 @@ export default function ComicApp({ onClose }: Props) {
   }, [call]);
 
   const loadCategory = useCallback(
-    async (nextTheme: string, nextOrdering: string, page: number, append: boolean) => {
+    async (nextTheme: string, nextOrdering: string, page: number, append: boolean, nextRegion?: string) => {
       setCatLoading(true);
       setCatError(null);
       try {
-        const data = await call("category", { theme: nextTheme, ordering: nextOrdering, page: String(page) });
+        const payload: Record<string, string> = { theme: nextTheme, ordering: nextOrdering, page: String(page) };
+        const useRegion = nextRegion !== undefined ? nextRegion : region;
+        if (source === "copy" && useRegion) payload.top = useRegion;
+        const data = await call("category", payload);
         const list: Comic[] = Array.isArray(data && data.comics) ? data.comics : [];
         setCatComics((prev) => (append ? [...prev, ...list] : list));
         setCatTotal(typeof (data && data.total) === "number" ? data.total : 0);
@@ -350,7 +354,7 @@ export default function ComicApp({ onClose }: Props) {
         setCatLoading(false);
       }
     },
-    [call],
+    [call, region, source],
   );
 
   function selectTheme(nextTheme: string) {
@@ -360,6 +364,10 @@ export default function ComicApp({ onClose }: Props) {
   function selectOrdering(nextOrdering: string) {
     setOrdering(nextOrdering);
     void loadCategory(theme, nextOrdering, 1, false);
+  }
+  function selectRegion(nextRegion: string) {
+    setRegion(nextRegion);
+    void loadCategory(theme, ordering, 1, false, nextRegion);
   }
 
   // 向指定源发一次请求（聚合搜索用，不依赖当前 source）。
