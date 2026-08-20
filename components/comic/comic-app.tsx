@@ -7,7 +7,7 @@ type Comic = { id: string; title: string; author?: string; cover: string; tags?:
 type Chapter = { id: string; title: string; comicId: string; section: string; slot: string };
 type Details = Comic & { description?: string; updateTime?: string; chapters: Chapter[] };
 type HomeData = Record<string, Comic[]>;
-type View = "home" | "search" | "explore" | "detail" | "reader" | "favorites";
+type View = "home" | "search" | "explore" | "detail" | "reader" | "favorites" | "settings";
 type ExploreTab = "recommend" | "category";
 type Source = "copy" | "jm";
 // 阅读页图片：num>1 表示禁漫的乱序切块数，需要 canvas 竖切倒序还原。
