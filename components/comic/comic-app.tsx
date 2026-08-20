@@ -1101,7 +1101,7 @@ export default function ComicApp({ onClose }: Props) {
   const showNav = view === "home" || view === "explore" || view === "favorites";
 
   return (
-    <div className="absolute inset-0 flex flex-col overflow-hidden bg-gray-50">
+    <div className={"absolute inset-0 flex flex-col overflow-hidden " + (settings.dark ? "bg-neutral-900 text-gray-100" : "bg-gray-50")}>
       {view === "home" && renderHome()}
       {view === "search" && renderSearch()}
       {view === "explore" && renderExplore()}
