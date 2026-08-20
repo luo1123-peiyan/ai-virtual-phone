@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useComicStore } from "@/lib/comic/store";
 
 type Props = { onClose: () => void };
-type Comic = { id: string; title: string; author?: string; cover: string; tags?: string[] };
+type Comic = { id: string; title: string; author?: string; cover: string; tags?: string[]; src?: Source };
 type Chapter = { id: string; title: string; comicId: string; section: string; slot: string };
 type Details = Comic & { description?: string; updateTime?: string; chapters: Chapter[] };
 type HomeData = Record<string, Comic[]>;
