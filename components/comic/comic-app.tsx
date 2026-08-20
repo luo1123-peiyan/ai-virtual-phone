@@ -781,6 +781,26 @@ export default function ComicApp({ onClose }: Props) {
           </button>
         </div>
 
+        {/* 横向源切换标签 */}
+        <div className="flex flex-none gap-4 overflow-x-auto border-b px-4 pt-1">
+          {SOURCES.map((s) => {
+            const picked = (s.name === "禁漫天堂" && source === "jm") || (s.name === "拷贝漫画" && source === "copy");
+            return (
+              <button
+                key={s.name}
+                type="button"
+                onClick={() => pickSource(s)}
+                className={
+                  "flex-none whitespace-nowrap pb-2 text-sm " +
+                  (picked ? "border-b-2 border-blue-600 font-bold text-blue-600" : s.active ? "text-gray-500" : "text-gray-300")
+                }
+              >
+                {s.name}
+              </button>
+            );
+          })}
+        </div>
+
         {/* 推荐 / 分类 切换 */}
         <div className="flex flex-none gap-6 border-b px-4 pt-2">
           <button
