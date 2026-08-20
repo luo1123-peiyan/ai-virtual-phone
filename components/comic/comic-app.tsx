@@ -723,7 +723,14 @@ export default function ComicApp({ onClose }: Props) {
           {results.length > 0 && (
             <div className="grid grid-cols-3 gap-3">
               {results.map((comic) => (
-                <Cover key={comic.id} comic={comic} onOpen={() => void openDetail(comic, "search")} />
+                <div key={(comic.src || "") + comic.id} className="relative">
+                  {aggregate && comic.src && (
+                    <span className="absolute left-1 top-1 z-10 rounded bg-black/60 px-1 text-[9px] text-white">
+                      {SOURCE_META[comic.src].name}
+                    </span>
+                  )}
+                  <Cover comic={comic} onOpen={() => void openDetail(comic, "search")} />
+                </div>
               ))}
             </div>
           )}
