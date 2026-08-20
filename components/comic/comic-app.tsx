@@ -332,6 +332,13 @@ export default function ComicApp({ onClose }: Props) {
     setToast(wasFav ? "已取消收藏" : "已加入收藏");
   }
 
+  function switchExploreTab(tab: ExploreTab) {
+    setExploreTab(tab);
+    if (tab === "category" && catComics.length === 0 && !catLoading) {
+      void loadCategory(theme, ordering, 1, false);
+    }
+  }
+
   function renderHome() {
     return (
       <div className="flex-1 overflow-y-auto pb-24 pt-6">
