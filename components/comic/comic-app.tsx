@@ -9,10 +9,13 @@ type Details = Comic & { description?: string; updateTime?: string; chapters: Ch
 type HomeData = Record<string, Comic[]>;
 type View = "home" | "search" | "explore" | "detail" | "reader" | "favorites";
 type ExploreTab = "recommend" | "category";
+type Source = "copy" | "jm";
+// 阅读页图片：num>1 表示禁漫的乱序切块数，需要 canvas 竖切倒序还原。
+type PageImg = { url: string; num: number };
 
 const SOURCES: { name: string; active: boolean }[] = [
   { name: "包子漫画", active: false },
-  { name: "禁漫天堂", active: false },
+  { name: "禁漫天堂", active: true },
   { name: "拷贝漫画", active: true },
   { name: "漫画柜", active: false },
   { name: "漫画人", active: false },
@@ -48,11 +51,40 @@ const THEMES: { word: string; name: string }[] = [
   { word: "gaoxiao", name: "搞笑" },
 ];
 
-// 排序方式。
+// 拷贝漫画排序方式。
 const ORDERINGS: { value: string; name: string }[] = [
   { value: "-datetime_updated", name: "最新" },
   { value: "-popular", name: "人气" },
 ];
+
+// 禁漫天堂分类（c 参数 -> 中文名）。
+const JM_THEMES: { word: string; name: string }[] = [
+  { word: "", name: "最新" },
+  { word: "doujin", name: "同人" },
+  { word: "single", name: "单本" },
+  { word: "short", name: "短篇" },
+  { word: "another", name: "其他类" },
+  { word: "hanman", name: "韩漫" },
+  { word: "meiman", name: "美漫" },
+  { word: "another_cosplay", name: "Cosplay" },
+  { word: "3D", name: "3D" },
+];
+
+// 禁漫天堂排序（o 参数）。
+const JM_ORDERINGS: { value: string; name: string }[] = [
+  { value: "mr", name: "最新" },
+  { value: "mv", name: "总排行" },
+  { value: "mv_m", name: "月排行" },
+  { value: "mv_w", name: "周排行" },
+  { value: "mv_t", name: "日排行" },
+  { value: "tf", name: "最多爱心" },
+];
+
+// 每个源的默认排序值 + API 端点。
+const SOURCE_META: Record<Source, { name: string; endpoint: string; defaultOrdering: string }> = {
+  copy: { name: "拷贝漫画", endpoint: "/api/comic/copy", defaultOrdering: "-datetime_updated" },
+  jm: { name: "禁漫天堂", endpoint: "/api/comic/jm", defaultOrdering: "mr" },
+};
 
 // 阅读进度：每章记住看到第几页（纯本地）。
 const PROGRESS_KEY = "ai-phone-comic-progress-v1";
