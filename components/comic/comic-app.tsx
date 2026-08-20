@@ -185,6 +185,34 @@ export default function ComicApp({ onClose }: Props) {
     }
   }, [call]);
 
+  const loadCategory = useCallback(
+    async (nextTheme: string, nextOrdering: string, page: number, append: boolean) => {
+      setCatLoading(true);
+      setCatError(null);
+      try {
+        const data = await call("category", { theme: nextTheme, ordering: nextOrdering, page: String(page) });
+        const list: Comic[] = Array.isArray(data && data.comics) ? data.comics : [];
+        setCatComics((prev) => (append ? [...prev, ...list] : list));
+        setCatTotal(typeof (data && data.total) === "number" ? data.total : 0);
+        setCatPage(page);
+      } catch (cause) {
+        setCatError(cause instanceof Error ? cause.message : String(cause));
+      } finally {
+        setCatLoading(false);
+      }
+    },
+    [call],
+  );
+
+  function selectTheme(nextTheme: string) {
+    setTheme(nextTheme);
+    void loadCategory(nextTheme, ordering, 1, false);
+  }
+  function selectOrdering(nextOrdering: string) {
+    setOrdering(nextOrdering);
+    void loadCategory(theme, nextOrdering, 1, false);
+  }
+
   const runSearch = useCallback(async () => {
     const keyword = query.trim();
     if (!keyword) return;
