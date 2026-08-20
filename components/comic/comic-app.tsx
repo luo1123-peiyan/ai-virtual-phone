@@ -550,7 +550,7 @@ export default function ComicApp({ onClose }: Props) {
 
   function renderFavorites() {
     return (
-      <div className="flex flex-1 flex-col overflow-hidden pt-6">
+      <div className="flex flex-1 flex-col overflow-hidden pt-1">
         <div className="flex flex-none items-center gap-2 border-b px-4 pb-2 pt-2">
           <span className="text-xl font-bold text-gray-800">收藏</span>
           <span className="ml-2 rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-600">{favorites.length}</span>
