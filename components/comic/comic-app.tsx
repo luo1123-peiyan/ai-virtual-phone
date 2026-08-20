@@ -439,6 +439,19 @@ export default function ComicApp({ onClose }: Props) {
     return () => clearTimeout(timer);
   }, [toast]);
 
+  // 挂载时读取本地设置。
+  useEffect(() => {
+    setSettings(loadSettings());
+  }, []);
+
+  function updateSettings(patch: Partial<ComicSettings>) {
+    setSettings((prev) => {
+      const next = { ...prev, ...patch };
+      persistSettings(next);
+      return next;
+    });
+  }
+
   function pickSource(item: { name: string; active: boolean }) {
     if (!item.active) {
       setToast(item.name + " 暂未接入，先用拷贝漫画或禁漫天堂吧");
