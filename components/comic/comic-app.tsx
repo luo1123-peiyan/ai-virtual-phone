@@ -418,6 +418,23 @@ export default function ComicApp({ onClose }: Props) {
     [call, detailComic, addHistory],
   );
 
+  // 翻页模式换页：到本章边界时自动翻到上/下一章。
+  function turnPage(dir: number) {
+    setCurPage((prev) => {
+      const next = prev + dir;
+      if (next < 0) {
+        gotoChapter(-1);
+        return prev;
+      }
+      if (next >= pages.length) {
+        gotoChapter(1);
+        return prev;
+      }
+      if (chapter) saveProgress(chapter.id, next);
+      return next;
+    });
+  }
+
   function gotoChapter(offset: number) {
     if (!detail || !chapter) return;
     const idx = detail.chapters.findIndex((item) => item.id === chapter.id);
