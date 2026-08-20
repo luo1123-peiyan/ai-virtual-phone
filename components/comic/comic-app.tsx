@@ -319,6 +319,18 @@ export default function ComicApp({ onClose }: Props) {
     void loadCategory(theme, nextOrdering, 1, false);
   }
 
+  // 向指定源发一次请求（聚合搜索用，不依赖当前 source）。
+  async function callSource(src: Source, action: string, payload?: Record<string, string>) {
+    const response = await fetch(SOURCE_META[src].endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, payload }),
+    });
+    const result = await response.json();
+    if (!response.ok || result.error) throw new Error(result.error || "请求失败");
+    return result.data;
+  }
+
   const runSearch = useCallback(async () => {
     const keyword = query.trim();
     if (!keyword) return;
@@ -326,14 +338,32 @@ export default function ComicApp({ onClose }: Props) {
     setLoading(true);
     setError(null);
     try {
-      const data = await call("search", { keyword });
-      setResults(Array.isArray(data && data.comics) ? data.comics : []);
+      if (aggregate) {
+        // 聚合搜索：并发问所有已接入源，任一失败不影响其他源。
+        const activeSrcs: Source[] = ["copy", "jm"];
+        const settled = await Promise.allSettled(
+          activeSrcs.map((s) => callSource(s, "search", { keyword })),
+        );
+        const merged: Comic[] = [];
+        settled.forEach((r, i) => {
+          if (r.status === "fulfilled") {
+            const list: Comic[] = Array.isArray(r.value && r.value.comics) ? r.value.comics : [];
+            list.forEach((c) => merged.push({ ...c, src: activeSrcs[i] }));
+          }
+        });
+        setResults(merged);
+        if (merged.length === 0) setError("所有源都没搜到，换个关键词试试");
+      } else {
+        const data = await call("search", { keyword });
+        const list: Comic[] = Array.isArray(data && data.comics) ? data.comics : [];
+        setResults(list.map((c) => ({ ...c, src: source })));
+      }
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
     } finally {
       setLoading(false);
     }
-  }, [call, query]);
+  }, [call, query, aggregate, source]);
 
   const openDetail = useCallback(
     async (comic: Comic, from: View) => {
