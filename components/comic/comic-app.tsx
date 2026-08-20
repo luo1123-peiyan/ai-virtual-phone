@@ -184,6 +184,9 @@ export default function ComicApp({ onClose }: Props) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const restoreTo = useRef(0);
 
+  // 当前漫画源。
+  const [source, setSource] = useState<Source>("copy");
+
   // 探索页：推荐 / 分类
   const [exploreTab, setExploreTab] = useState<ExploreTab>("recommend");
   const [theme, setTheme] = useState("");
@@ -194,16 +197,19 @@ export default function ComicApp({ onClose }: Props) {
   const [catLoading, setCatLoading] = useState(false);
   const [catError, setCatError] = useState<string | null>(null);
 
-  const call = useCallback(async (action: string, payload?: Record<string, string>) => {
-    const response = await fetch("/api/comic/copy", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action, payload }),
-    });
-    const result = await response.json();
-    if (!response.ok || result.error) throw new Error(result.error || "请求失败");
-    return result.data;
-  }, []);
+  const call = useCallback(
+    async (action: string, payload?: Record<string, string>) => {
+      const response = await fetch(SOURCE_META[source].endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, payload }),
+      });
+      const result = await response.json();
+      if (!response.ok || result.error) throw new Error(result.error || "请求失败");
+      return result.data;
+    },
+    [source],
+  );
 
   const loadHome = useCallback(async () => {
     setLoading(true);
