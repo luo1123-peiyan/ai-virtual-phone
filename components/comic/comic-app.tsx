@@ -1057,43 +1057,58 @@ export default function ComicApp({ onClose }: Props) {
             <div className="h-full bg-blue-500 transition-all" style={{ width: percent + "%" }} />
           </div>
         </div>
-        <div
-          ref={scrollRef}
-          onScroll={onReaderScroll}
-          className="flex-1 overflow-y-auto bg-black"
-          style={{ filter: settings.brightness < 100 ? `brightness(${settings.brightness}%)` : undefined }}
-        >
-          {loading && <p className="py-10 text-center text-sm text-gray-400">正在加载图片...</p>}
-          {error && (
-            <div className="m-3 rounded-lg bg-red-50 p-3 text-sm text-red-600">加载失败：{error}</div>
-          )}
-          {!loading && !error && pages.length === 0 && (
-            <p className="py-10 text-center text-sm text-gray-400">本章暂无内容</p>
-          )}
-          {pages.map((p, index) => (
-            <ReaderImage key={index} img={p} source={source} />
-          ))}
-          {!loading && pages.length > 0 && (
-            <div className="flex items-center justify-between gap-3 bg-white p-4">
-              <button
-                type="button"
-                onClick={() => gotoChapter(-1)}
-                disabled={!hasPrev}
-                className={"flex-1 rounded-full py-2 text-sm font-medium " + (hasPrev ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-300")}
-              >
-                上一章
-              </button>
-              <button
-                type="button"
-                onClick={() => gotoChapter(1)}
-                disabled={!hasNext}
-                className={"flex-1 rounded-full py-2 text-sm font-medium " + (hasNext ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-300")}
-              >
-                下一章
-              </button>
-            </div>
-          )}
-        </div>
+        {settings.readerMode === "paged" && !loading && !error && pages.length > 0 ? (
+          <div
+            className="relative flex flex-1 items-center justify-center overflow-hidden bg-black"
+            style={{ filter: settings.brightness < 100 ? `brightness(${settings.brightness}%)` : undefined }}
+          >
+            <ReaderImage key={curPage} img={pages[curPage]} source={source} />
+            {settings.tapTurn && (
+              <>
+                <button type="button" aria-label="上一页" onClick={() => turnPage(settings.readerDir === "rtl" ? 1 : -1)} className="absolute left-0 top-0 h-full w-1/3" />
+                <button type="button" aria-label="下一页" onClick={() => turnPage(settings.readerDir === "rtl" ? -1 : 1)} className="absolute right-0 top-0 h-full w-1/3" />
+              </>
+            )}
+          </div>
+        ) : (
+          <div
+            ref={scrollRef}
+            onScroll={onReaderScroll}
+            className="flex-1 overflow-y-auto bg-black"
+            style={{ filter: settings.brightness < 100 ? `brightness(${settings.brightness}%)` : undefined }}
+          >
+            {loading && <p className="py-10 text-center text-sm text-gray-400">正在加载图片...</p>}
+            {error && (
+              <div className="m-3 rounded-lg bg-red-50 p-3 text-sm text-red-600">加载失败：{error}</div>
+            )}
+            {!loading && !error && pages.length === 0 && (
+              <p className="py-10 text-center text-sm text-gray-400">本章暂无内容</p>
+            )}
+            {pages.map((p, index) => (
+              <ReaderImage key={index} img={p} source={source} />
+            ))}
+            {!loading && pages.length > 0 && (
+              <div className="flex items-center justify-between gap-3 bg-white p-4">
+                <button
+                  type="button"
+                  onClick={() => gotoChapter(-1)}
+                  disabled={!hasPrev}
+                  className={"flex-1 rounded-full py-2 text-sm font-medium " + (hasPrev ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-300")}
+                >
+                  上一章
+                </button>
+                <button
+                  type="button"
+                  onClick={() => gotoChapter(1)}
+                  disabled={!hasNext}
+                  className={"flex-1 rounded-full py-2 text-sm font-medium " + (hasNext ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-300")}
+                >
+                  下一章
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     );
   }
