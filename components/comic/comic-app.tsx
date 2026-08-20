@@ -569,6 +569,7 @@ export default function ComicApp({ onClose }: Props) {
       setCatError(null);
       setError(null);
       setTheme("");
+      setRegion("");
       setOrdering(SOURCE_META[next].defaultOrdering);
       setExploreTab("recommend");
     }
