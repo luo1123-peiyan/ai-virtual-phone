@@ -7,7 +7,7 @@ type Comic = { id: string; title: string; author?: string; cover: string; tags?:
 type Chapter = { id: string; title: string; comicId: string; section: string; slot: string };
 type Details = Comic & { description?: string; updateTime?: string; chapters: Chapter[] };
 type HomeData = Record<string, Comic[]>;
-type View = "home" | "search" | "explore" | "detail" | "reader";
+type View = "home" | "search" | "explore" | "detail" | "reader" | "favorites";
 
 const SOURCES: { name: string; active: boolean }[] = [
   { name: "包子漫画", active: false },
@@ -83,13 +83,14 @@ function NavIcon({ path, active, label, onClick }: { path: string; active: boole
 }
 
 export default function ComicApp({ onClose }: Props) {
-  const { history, addHistory } = useComicStore();
+  const { history, favorites, addHistory, toggleFavorite, isFavorite } = useComicStore();
   const [view, setView] = useState<View>("home");
   const [query, setQuery] = useState("");
   const [home, setHome] = useState<HomeData>({});
   const [results, setResults] = useState<Comic[]>([]);
   const [detail, setDetail] = useState<Details | null>(null);
   const [detailComic, setDetailComic] = useState<Comic | null>(null);
+  const [detailFrom, setDetailFrom] = useState<View>("explore");
   const [pages, setPages] = useState<string[]>([]);
   const [chapterTitle, setChapterTitle] = useState("");
   const [loading, setLoading] = useState(false);
@@ -136,8 +137,9 @@ export default function ComicApp({ onClose }: Props) {
   }, [call, query]);
 
   const openDetail = useCallback(
-    async (comic: Comic) => {
+    async (comic: Comic, from: View) => {
       setDetailComic(comic);
+      setDetailFrom(from);
       setDetail(null);
       setView("detail");
       setLoading(true);
@@ -190,6 +192,13 @@ export default function ComicApp({ onClose }: Props) {
     else setToast(source.name + " 暂未接入，先用拷贝漫画吧");
   }
 
+  function handleFavorite() {
+    if (!detailComic) return;
+    const wasFav = isFavorite(detailComic.id);
+    toggleFavorite(detailComic);
+    setToast(wasFav ? "已取消收藏" : "已加入收藏");
+  }
+
   function renderHome() {
     return (
       <div className="flex-1 overflow-y-auto pb-24 pt-6">
@@ -233,7 +242,7 @@ export default function ComicApp({ onClose }: Props) {
             <div className="flex gap-3 overflow-x-auto pb-1">
               {history.slice(0, 12).map((comic) => (
                 <div key={comic.id} className="w-24 flex-none">
-                  <Cover comic={comic} onOpen={() => void openDetail(comic)} />
+                  <Cover comic={comic} onOpen={() => void openDetail(comic, "home")} />
                 </div>
               ))}
             </div>
@@ -261,10 +270,11 @@ export default function ComicApp({ onClose }: Props) {
 
         <button
           type="button"
-          onClick={() => setToast("追更列表稍后接入~")}
+          onClick={() => setView("favorites")}
           className="mx-4 mb-4 flex w-[calc(100%-2rem)] items-center rounded-2xl border border-gray-100 bg-white p-4 shadow-sm"
         >
           <span className="text-lg font-bold text-gray-800">追更</span>
+          <span className="ml-2 rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-600">{favorites.length}</span>
           <span className="ml-auto text-gray-300">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
           </span>
@@ -291,6 +301,28 @@ export default function ComicApp({ onClose }: Props) {
             ))}
           </div>
         </section>
+      </div>
+    );
+  }
+
+  function renderFavorites() {
+    return (
+      <div className="flex flex-1 flex-col overflow-hidden pt-6">
+        <div className="flex flex-none items-center gap-2 border-b px-4 pb-2 pt-2">
+          <span className="text-xl font-bold text-gray-800">收藏</span>
+          <span className="ml-2 rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-600">{favorites.length}</span>
+        </div>
+        <div className="flex-1 overflow-y-auto p-3">
+          {favorites.length === 0 ? (
+            <p className="py-16 text-center text-sm text-gray-400">还没有收藏，去详情页点❤收藏吧</p>
+          ) : (
+            <div className="grid grid-cols-3 gap-3">
+              {favorites.map((comic) => (
+                <Cover key={comic.id} comic={comic} onOpen={() => void openDetail(comic, "favorites")} />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     );
   }
@@ -333,7 +365,7 @@ export default function ComicApp({ onClose }: Props) {
           {results.length > 0 && (
             <div className="grid grid-cols-3 gap-3">
               {results.map((comic) => (
-                <Cover key={comic.id} comic={comic} onOpen={() => void openDetail(comic)} />
+                <Cover key={comic.id} comic={comic} onOpen={() => void openDetail(comic, "search")} />
               ))}
             </div>
           )}
@@ -372,7 +404,7 @@ export default function ComicApp({ onClose }: Props) {
                   </div>
                   <div className="grid grid-cols-3 gap-3">
                     {comics.slice(0, 9).map((comic) => (
-                      <Cover key={comic.id} comic={comic} onOpen={() => void openDetail(comic)} />
+                      <Cover key={comic.id} comic={comic} onOpen={() => void openDetail(comic, "explore")} />
                     ))}
                   </div>
                 </section>
@@ -388,13 +420,24 @@ export default function ComicApp({ onClose }: Props) {
 
   function renderDetail() {
     const c = detail || detailComic;
+    const faved = detailComic ? isFavorite(detailComic.id) : false;
     return (
       <div className="flex flex-1 flex-col overflow-hidden pt-6">
         <div className="flex flex-none items-center gap-2 border-b px-3 pb-2 pt-2">
-          <button type="button" onClick={() => setView(results.length ? "search" : "explore")} className="flex h-8 w-8 items-center justify-center text-gray-500" aria-label="返回">
+          <button type="button" onClick={() => setView(detailFrom)} className="flex h-8 w-8 items-center justify-center text-gray-500" aria-label="返回">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
           </button>
-          <span className="line-clamp-1 text-base font-bold text-gray-800">{c ? c.title : "详情"}</span>
+          <span className="line-clamp-1 flex-1 text-base font-bold text-gray-800">{c ? c.title : "详情"}</span>
+          <button
+            type="button"
+            onClick={handleFavorite}
+            aria-label="收藏"
+            className={"flex h-8 w-8 items-center justify-center " + (faved ? "text-red-500" : "text-gray-400")}
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill={faved ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z" />
+            </svg>
+          </button>
         </div>
         <div className="flex-1 overflow-y-auto pb-4">
           {c && (
@@ -413,6 +456,13 @@ export default function ComicApp({ onClose }: Props) {
                     ))}
                   </div>
                 )}
+                <button
+                  type="button"
+                  onClick={handleFavorite}
+                  className={"mt-3 rounded-full px-4 py-1.5 text-xs font-medium " + (faved ? "bg-red-50 text-red-500" : "bg-blue-600 text-white")}
+                >
+                  {faved ? "已收藏 ♥" : "＋ 收藏"}
+                </button>
               </div>
             </div>
           )}
@@ -423,7 +473,7 @@ export default function ComicApp({ onClose }: Props) {
           {error && (
             <div className="m-3 rounded-lg bg-red-50 p-3 text-sm text-red-600">
               加载失败：{error}
-              <button type="button" onClick={() => detailComic && void openDetail(detailComic)} className="ml-2 underline">重试</button>
+              <button type="button" onClick={() => detailComic && void openDetail(detailComic, detailFrom)} className="ml-2 underline">重试</button>
             </div>
           )}
           {detail && detail.chapters && detail.chapters.length > 0 && (
@@ -473,7 +523,7 @@ export default function ComicApp({ onClose }: Props) {
     );
   }
 
-  const showNav = view === "home" || view === "explore";
+  const showNav = view === "home" || view === "explore" || view === "favorites";
 
   return (
     <div className="absolute inset-0 flex flex-col overflow-hidden bg-gray-50">
@@ -482,11 +532,12 @@ export default function ComicApp({ onClose }: Props) {
       {view === "explore" && renderExplore()}
       {view === "detail" && renderDetail()}
       {view === "reader" && renderReader()}
+      {view === "favorites" && renderFavorites()}
 
       {showNav && (
         <nav className="flex flex-none items-center border-t bg-white pb-1 pt-1">
           <NavIcon label="主页" active={view === "home"} onClick={() => setView("home")} path="M3 9.5 12 3l9 6.5V21a1 1 0 0 1-1 1h-5v-7h-6v7H4a1 1 0 0 1-1-1z" />
-          <NavIcon label="收藏" active={false} onClick={() => setToast("收藏页稍后接入~")} path="M4 4h13l3 4v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1zM4 8h16" />
+          <NavIcon label="收藏" active={view === "favorites"} onClick={() => setView("favorites")} path="M4 4h13l3 4v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1zM4 8h16" />
           <NavIcon label="探索" active={view === "explore"} onClick={openExplore} path="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM16 8l-2 6-6 2 2-6z" />
           <NavIcon label="设置" active={false} onClick={() => setToast("更多设置稍后接入~")} path="M4 20V10M4 6V4M12 20v-8M12 8V4M20 20v-4M20 12V4M1 14h6M9 10h6M17 16h6" />
         </nav>
