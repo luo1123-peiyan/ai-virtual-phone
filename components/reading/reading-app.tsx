@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect, useRef, type CSSProperties } from "react";
 import { hydrateReadingStorage } from "@/lib/reading-storage";
 import { ReadingShelf } from "./reading-shelf";
@@ -18,7 +17,6 @@ import {
 } from "@/lib/reading-appearance";
 
 type Props = { onClose: () => void };
-
 export default function ReadingApp({ onClose }: Props) {
     const [ready, setReady] = useState(false);
     const [activeBook, setActiveBook] = useState<Book | null>(null);
@@ -30,7 +28,6 @@ export default function ReadingApp({ onClose }: Props) {
     const backgroundUrlRef = useRef<string | null>(null);
     const customFontUrlRef = useRef<string | null>(null);
     if (activeBook) lastBookRef.current = activeBook;
-
     const updateBackgroundUrl = (nextUrl: string | null) => {
         if (backgroundUrlRef.current && backgroundUrlRef.current !== nextUrl) {
             URL.revokeObjectURL(backgroundUrlRef.current);
@@ -38,7 +35,6 @@ export default function ReadingApp({ onClose }: Props) {
         backgroundUrlRef.current = nextUrl;
         setBackgroundUrl(nextUrl);
     };
-
     const loadCustomFontFace = async (blob: Blob | null) => {
         if (customFontUrlRef.current) {
             URL.revokeObjectURL(customFontUrlRef.current);
@@ -50,7 +46,6 @@ export default function ReadingApp({ onClose }: Props) {
         const url = URL.createObjectURL(blob);
         customFontUrlRef.current = url;
         const familyName = `AIVirtualPhoneReadingFont_${Date.now()}`;
-
         try {
             const face = new FontFace(familyName, `url("${url}")`);
             await face.load();
@@ -60,7 +55,6 @@ export default function ReadingApp({ onClose }: Props) {
             setCustomFontFamily(undefined);
         }
     };
-
     useEffect(() => {
         hydrateReadingStorage().then(() => setReady(true));
         setAppearance(loadReadingAppearance());
@@ -75,37 +69,31 @@ export default function ReadingApp({ onClose }: Props) {
             if (customFontUrlRef.current) URL.revokeObjectURL(customFontUrlRef.current);
         };
     }, []);
-
     const handleSaveAppearance = async (
         nextAppearance: ReadingAppearance,
         options: { backgroundFile: File | null; clearBackground: boolean; customFontFile: File | null; clearCustomFont: boolean },
     ) => {
         const normalized = saveReadingAppearance(nextAppearance);
         setAppearance(normalized);
-
         if (options.clearBackground) {
             await saveReadingBackground(null);
             updateBackgroundUrl(null);
             return;
         }
-
         if (options.backgroundFile) {
             await saveReadingBackground(options.backgroundFile);
             updateBackgroundUrl(URL.createObjectURL(options.backgroundFile));
         }
-
         if (options.clearCustomFont) {
             await saveReadingCustomFont(null);
             await loadCustomFontFace(null);
             return;
         }
-
         if (options.customFontFile) {
             await saveReadingCustomFont(options.customFontFile);
             await loadCustomFontFace(options.customFontFile);
         }
     };
-
     const appearanceStyle = {
         ["--reading-font-family" as "--reading-font-family"]: resolveReadingFontFamily(appearance.fontFamily, customFontFamily),
         ["--reading-font-size" as "--reading-font-size"]: `${appearance.fontSize}px`,
@@ -119,9 +107,7 @@ export default function ReadingApp({ onClose }: Props) {
         visibility: "hidden",
         pointerEvents: "none",
     } as CSSProperties;
-
     if (!ready) return <div className="absolute inset-0 z-[100] flex items-center justify-center" style={{ background: "#fffced" }}><span className="ts-14" style={{ color: "#a39487" }}>加载中...</span></div>;
-
     return (
         <div className="absolute inset-0" style={appearanceStyle}>
             {!activeBook && (
