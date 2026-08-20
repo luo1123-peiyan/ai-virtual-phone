@@ -260,6 +260,10 @@ export default function ComicApp({ onClose }: Props) {
   const [catTotal, setCatTotal] = useState(0);
   const [catLoading, setCatLoading] = useState(false);
   const [catError, setCatError] = useState<string | null>(null);
+  // 聚合搜索：勾选后同时搜所有已接入源，结果按源分组。
+  const [aggregate, setAggregate] = useState(false);
+  const [settings, setSettings] = useState<ComicSettings>(DEFAULT_SETTINGS);
+  const [showSearchSource, setShowSearchSource] = useState(false);
 
   const call = useCallback(
     async (action: string, payload?: Record<string, string>) => {
