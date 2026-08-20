@@ -107,6 +107,35 @@ function saveProgress(chapterId: string, page: number): void {
   }
 }
 
+// 阅读器 / 外观设置（纯本地）。
+type ComicSettings = {
+  readerMode: "scroll" | "paged"; // 卷轴 / 翻页
+  readerDir: "ltr" | "rtl"; // 翻页方向：左→右 / 右→左（日漫）
+  tapTurn: boolean; // 点击左右翻页
+  brightness: number; // 阅读器亮度 30-100
+  dark: boolean; // 深色模式
+};
+const DEFAULT_SETTINGS: ComicSettings = { readerMode: "scroll", readerDir: "ltr", tapTurn: true, brightness: 100, dark: false };
+const SETTINGS_KEY = "ai-phone-comic-settings-v1";
+function loadSettings(): ComicSettings {
+  if (typeof window === "undefined") return DEFAULT_SETTINGS;
+  try {
+    const raw = window.localStorage.getItem(SETTINGS_KEY);
+    if (!raw) return DEFAULT_SETTINGS;
+    return { ...DEFAULT_SETTINGS, ...(JSON.parse(raw) as Partial<ComicSettings>) };
+  } catch {
+    return DEFAULT_SETTINGS;
+  }
+}
+function persistSettings(next: ComicSettings): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
+  } catch {
+    // ignore
+  }
+}
+
 function Cover({ comic, onOpen }: { comic: Comic; onOpen?: () => void }) {
   const [broken, setBroken] = useState(false);
   return (
