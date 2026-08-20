@@ -91,6 +91,15 @@ const ORDERINGS: { value: string; name: string }[] = [
   { value: "-popular", name: "人气" },
 ];
 
+// 拷贝漫画地区（top 参数 -> 中文名），对齐 Venera 官方。
+const REGIONS: { value: string; name: string }[] = [
+  { value: "", name: "全部" },
+  { value: "japan", name: "日漫" },
+  { value: "korea", name: "韩漫" },
+  { value: "west", name: "美漫" },
+  { value: "finish", name: "已完结" },
+];
+
 // 禁漫天堂分类（c 参数 -> 中文名）。
 const JM_THEMES: { word: string; name: string }[] = [
   { word: "", name: "最新" },
