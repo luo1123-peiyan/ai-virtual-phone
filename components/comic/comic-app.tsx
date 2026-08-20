@@ -949,6 +949,94 @@ export default function ComicApp({ onClose }: Props) {
     );
   }
 
+  function renderSettings() {
+    const SwitchRow = ({ label, desc, on, onToggle }: { label: string; desc?: string; on: boolean; onToggle: () => void }) => (
+      <button type="button" onClick={onToggle} className="flex w-full items-center gap-3 px-4 py-3">
+        <div className="min-w-0 flex-1 text-left">
+          <p className="text-sm text-gray-800">{label}</p>
+          {desc && <p className="mt-0.5 text-xs text-gray-400">{desc}</p>}
+        </div>
+        <span className={"relative h-6 w-11 flex-none rounded-full transition-colors " + (on ? "bg-blue-500" : "bg-gray-300")}>
+          <span className={"absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all " + (on ? "left-[22px]" : "left-0.5")} />
+        </span>
+      </button>
+    );
+    const Seg = ({ label, options, value, onPick }: { label: string; options: { v: string; t: string }[]; value: string; onPick: (v: string) => void }) => (
+      <div className="px-4 py-3">
+        <p className="mb-2 text-sm text-gray-800">{label}</p>
+        <div className="flex gap-2">
+          {options.map((o) => (
+            <button
+              key={o.v}
+              type="button"
+              onClick={() => onPick(o.v)}
+              className={"flex-1 rounded-lg py-2 text-xs " + (value === o.v ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600")}
+            >
+              {o.t}
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+    return (
+      <div className="flex flex-1 flex-col overflow-hidden pt-1">
+        <div className="flex flex-none items-center gap-2 border-b px-3 pb-2 pt-2">
+          <button type="button" onClick={() => setView("home")} className="flex h-8 w-8 items-center justify-center text-gray-500" aria-label="返回">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
+          </button>
+          <span className="text-xl font-bold text-gray-800">设置</span>
+        </div>
+        <div className="flex-1 overflow-y-auto pb-8">
+          <p className="px-4 pb-1 pt-4 text-xs font-bold text-gray-400">阅读中</p>
+          <div className="divide-y bg-white">
+            <Seg
+              label="阅读模式"
+              options={[{ v: "scroll", t: "卷轴（竖滑）" }, { v: "paged", t: "翻页（单页）" }]}
+              value={settings.readerMode}
+              onPick={(v) => updateSettings({ readerMode: v as ComicSettings["readerMode"] })}
+            />
+            <Seg
+              label="翻页方向"
+              options={[{ v: "ltr", t: "从左到右" }, { v: "rtl", t: "从右到左（日漫）" }]}
+              value={settings.readerDir}
+              onPick={(v) => updateSettings({ readerDir: v as ComicSettings["readerDir"] })}
+            />
+            <SwitchRow label="点击左右翻页" desc="翻页模式下点屏幕左右侧切页" on={settings.tapTurn} onToggle={() => updateSettings({ tapTurn: !settings.tapTurn })} />
+            <div className="px-4 py-3">
+              <div className="mb-2 flex items-center justify-between text-sm text-gray-800">
+                <span>阅读器亮度</span>
+                <span className="text-xs text-gray-400">{settings.brightness}%</span>
+              </div>
+              <input
+                type="range"
+                min={30}
+                max={100}
+                value={settings.brightness}
+                onChange={(e) => updateSettings({ brightness: Number(e.target.value) })}
+                className="w-full accent-blue-500"
+              />
+            </div>
+          </div>
+          <p className="px-4 pb-1 pt-4 text-xs font-bold text-gray-400">外观</p>
+          <div className="divide-y bg-white">
+            <SwitchRow label="深色模式" desc="整个漫画应用切换深色背景" on={settings.dark} onToggle={() => updateSettings({ dark: !settings.dark })} />
+          </div>
+          <p className="px-4 pb-1 pt-4 text-xs font-bold text-gray-400">漫画源</p>
+          <div className="bg-white px-4 py-3">
+            <div className="flex flex-wrap gap-2">
+              {SOURCES.map((s) => (
+                <span key={s.name} className={"rounded-full px-3 py-1 text-xs " + (s.active ? "bg-green-50 text-green-600" : "bg-gray-100 text-gray-400")}>
+                  {s.name}{s.active ? " ✓" : ""}
+                </span>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-gray-400">✓ 为已接入源，其余正在逐个接入中</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   function renderReader() {
     const idx = detail && chapter ? detail.chapters.findIndex((item) => item.id === chapter.id) : -1;
     const hasPrev = idx > 0;
