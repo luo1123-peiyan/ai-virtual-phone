@@ -1103,13 +1103,14 @@ export default function ComicApp({ onClose }: Props) {
       {view === "detail" && renderDetail()}
       {view === "reader" && renderReader()}
       {view === "favorites" && renderFavorites()}
+      {view === "settings" && renderSettings()}
 
       {showNav && (
         <nav className="flex flex-none items-center border-t bg-white pb-1 pt-1">
           <NavIcon label="主页" active={view === "home"} onClick={() => setView("home")} path="M3 9.5 12 3l9 6.5V21a1 1 0 0 1-1 1h-5v-7h-6v7H4a1 1 0 0 1-1-1z" />
           <NavIcon label="收藏" active={view === "favorites"} onClick={() => setView("favorites")} path="M4 4h13l3 4v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1zM4 8h16" />
           <NavIcon label="探索" active={view === "explore"} onClick={openExplore} path="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM16 8l-2 6-6 2 2-6z" />
-          <NavIcon label="设置" active={false} onClick={() => setToast("更多设置稍后接入~")} path="M4 20V10M4 6V4M12 20v-8M12 8V4M20 20v-4M20 12V4M1 14h6M9 10h6M17 16h6" />
+          <NavIcon label="设置" active={view === "settings"} onClick={() => setView("settings")} path="M4 20V10M4 6V4M12 20v-8M12 8V4M20 20v-4M20 12V4M1 14h6M9 10h6M17 16h6" />
         </nav>
       )}
 
