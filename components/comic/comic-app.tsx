@@ -540,7 +540,7 @@ export default function ComicApp({ onClose }: Props) {
 
   function renderHome() {
     return (
-      <div className="flex-1 overflow-y-auto pb-24 pt-6">
+      <div className="flex-1 overflow-y-auto pb-24 pt-12">
         <div className="flex items-center justify-between px-4 pb-1 pt-2">
           <span className="text-2xl font-bold text-gray-800">主页</span>
           <button type="button" onClick={onClose} aria-label="返回桌面" className="text-gray-500">
@@ -668,7 +668,7 @@ export default function ComicApp({ onClose }: Props) {
 
   function renderSearch() {
     return (
-      <div className="flex flex-1 flex-col overflow-hidden pt-6">
+      <div className="flex flex-1 flex-col overflow-hidden pt-10">
         <div className="flex flex-none items-center gap-2 px-3 pb-2 pt-2">
           <button type="button" onClick={() => setView("home")} className="flex h-8 w-8 items-center justify-center text-gray-500" aria-label="返回">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
