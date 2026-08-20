@@ -670,6 +670,42 @@ export default function ComicApp({ onClose }: Props) {
           </div>
           <button type="button" onClick={() => void runSearch()} className="flex-none px-1 text-sm text-blue-600">搜索</button>
         </div>
+        <div className="flex-none border-b px-3 pb-3">
+          <div className="mb-2 flex items-center gap-2">
+            <span className="text-xs font-bold text-gray-600">搜索于</span>
+            {aggregate && <span className="text-[10px] text-gray-400">（聚合模式下将搜索所有已接入源）</span>}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {SOURCES.map((s) => {
+              const isActive = s.active;
+              const picked = !aggregate && ((s.name === "禁漫天堂" && source === "jm") || (s.name === "拷贝漫画" && source === "copy"));
+              return (
+                <button
+                  key={s.name}
+                  type="button"
+                  disabled={aggregate}
+                  onClick={() => {
+                    if (!isActive) { setToast(s.name + " 暂未接入~"); return; }
+                    setSource(s.name === "禁漫天堂" ? "jm" : "copy");
+                  }}
+                  className={
+                    "rounded-lg border px-3 py-1.5 text-xs " +
+                    (picked ? "border-blue-500 bg-blue-50 text-blue-600" : isActive ? "border-gray-200 text-gray-600" : "border-gray-100 text-gray-300") +
+                    (aggregate ? " opacity-40" : "")
+                  }
+                >
+                  {s.name}
+                </button>
+              );
+            })}
+          </div>
+          <button type="button" onClick={() => setAggregate((v) => !v)} className="mt-3 flex items-center gap-2">
+            <span className={"flex h-5 w-5 items-center justify-center rounded border " + (aggregate ? "border-blue-500 bg-blue-500 text-white" : "border-gray-300 text-transparent")}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m5 12 5 5 9-11" /></svg>
+            </span>
+            <span className="text-sm text-gray-700">聚合搜索</span>
+          </button>
+        </div>
         <div className="flex-1 overflow-y-auto p-3">
           {loading && <p className="py-6 text-center text-sm text-gray-400">正在加载...</p>}
           {error && (
