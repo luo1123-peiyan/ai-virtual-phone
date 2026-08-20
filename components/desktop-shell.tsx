@@ -3910,6 +3910,9 @@ html,body{margin:0;padding:0;width:100%;height:100%;background:#121110;color:rgb
     if (activeApp === "reading") {
       return <ReadingApp onClose={() => setActiveApp(null)} />;
     }
+    if (activeApp === "comic") {
+      return <ComicApp onClose={() => setActiveApp(null)} />;
+    }
 
     if (activeApp === "mapmode") {
       return <MapApp onClose={() => setActiveApp(null)} />;
