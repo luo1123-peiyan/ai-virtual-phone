@@ -913,6 +913,21 @@ export default function ComicApp({ onClose }: Props) {
                 </button>
               ))}
             </div>
+            {/* 地区（仅拷贝漫画：日漫/韩漫/美漫/已完结） */}
+            {source === "copy" && (
+              <div className="flex flex-none gap-2 overflow-x-auto px-3 pt-2">
+                {REGIONS.map((r) => (
+                  <button
+                    key={r.value || "allregion"}
+                    type="button"
+                    onClick={() => selectRegion(r.value)}
+                    className={"flex-none rounded-full px-3 py-1 text-xs " + (region === r.value ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600")}
+                  >
+                    {r.name}
+                  </button>
+                ))}
+              </div>
+            )}
             {/* 题材（按源切换选项） */}
             <div className="flex flex-none flex-wrap gap-1.5 px-3 py-2">
               {(source === "jm" ? JM_THEMES : THEMES).map((t) => (
