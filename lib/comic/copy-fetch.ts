@@ -175,13 +175,14 @@ export async function search(keyword: string, qType: string, page: number): Prom
 export type CopyComicDetails = ComicDetails & { subId: string };
 
 export async function getComicInfo(pathWord: string): Promise<CopyComicDetails> {
-  const results = (await copyFetchJson("/api/v3/comic2/" + pathWord + "?platform=3")).results;
-  const c = results.comic;
+  const results = (await copyFetchJson("/api/v3/comic2/" + pathWord + "?platform=3")).results ?? {};
+  const c = results.comic ?? {};
   const groups = results.groups ?? {};
   const chapters: ComicChapter[] = [];
 
   for (const key of Object.keys(groups)) {
     const group = groups[key];
+    if (!group || !group.path_word) continue; // 跳过空分组
     let offset = 0;
     // eslint-disable-next-line no-constant-condition
     while (true) {
@@ -189,13 +190,15 @@ export async function getComicInfo(pathWord: string): Promise<CopyComicDetails> 
         await copyFetchJson(
           "/api/v3/comic/" + pathWord + "/group/" + group.path_word + "/chapters?limit=100&offset=" + offset + "&platform=3",
         )
-      ).results;
-      for (const e of chData.list ?? []) {
+      ).results ?? {};
+      const list: any[] = Array.isArray(chData.list) ? chData.list : [];
+      for (const e of list) {
+        if (!e || !e.uuid) continue; // 过滤脏章节
         chapters.push({
           id: e.uuid,
-          title: e.name,
+          title: e.name ?? "未命名",
           comicId: pathWord,
-          section: group.name,
+          section: group.name ?? "",
           slot: String(chapters.length),
         });
       }
@@ -204,16 +207,23 @@ export async function getComicInfo(pathWord: string): Promise<CopyComicDetails> 
     }
   }
 
+  const authors = Array.isArray(c.author)
+    ? c.author.filter((a: any) => a && a.name).map((a: any) => a.name)
+    : [];
+  const tags = Array.isArray(c.theme)
+    ? c.theme.filter((t: any) => t && t.name).map((t: any) => t.name)
+    : [];
+
   return {
     id: pathWord,
-    title: c.name,
-    author: Array.isArray(c.author) ? c.author.map((a: any) => a.name).join(", ") : undefined,
-    cover: c.cover,
-    tags: Array.isArray(c.theme) ? c.theme.map((t: any) => t.name) : [],
+    title: c.name ?? "",
+    author: authors.length > 0 ? authors.join(", ") : undefined,
+    cover: c.cover ?? "",
+    tags,
     description: c.brief ?? "",
     updateTime: c.datetime_updated ?? "",
     chapters,
-    subId: c.uuid,
+    subId: c.uuid ?? "",
   };
 }
 
