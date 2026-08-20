@@ -1057,7 +1057,12 @@ export default function ComicApp({ onClose }: Props) {
             <div className="h-full bg-blue-500 transition-all" style={{ width: percent + "%" }} />
           </div>
         </div>
-        <div ref={scrollRef} onScroll={onReaderScroll} className="flex-1 overflow-y-auto bg-black">
+        <div
+          ref={scrollRef}
+          onScroll={onReaderScroll}
+          className="flex-1 overflow-y-auto bg-black"
+          style={{ filter: settings.brightness < 100 ? `brightness(${settings.brightness}%)` : undefined }}
+        >
           {loading && <p className="py-10 text-center text-sm text-gray-400">正在加载图片...</p>}
           {error && (
             <div className="m-3 rounded-lg bg-red-50 p-3 text-sm text-red-600">加载失败：{error}</div>
