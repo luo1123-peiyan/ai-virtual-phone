@@ -24,6 +24,36 @@ const SOURCES: { name: string; active: boolean }[] = [
   { name: "漫画1234", active: false },
 ];
 
+// 拷贝漫画题材（path_word -> 中文名）。
+const THEMES: { word: string; name: string }[] = [
+  { word: "", name: "全部" },
+  { word: "aiqing", name: "爱情" },
+  { word: "huanlexiang", name: "欢乐向" },
+  { word: "maoxian", name: "冒险" },
+  { word: "rexue", name: "热血" },
+  { word: "xuanyi", name: "悬疑" },
+  { word: "kehuan", name: "科幻" },
+  { word: "qihuan", name: "奇幻" },
+  { word: "xuanhuan", name: "玄幻" },
+  { word: "gedou", name: "格斗" },
+  { word: "baihe", name: "百合" },
+  { word: "hougong", name: "后宫" },
+  { word: "zhiyu", name: "治愈" },
+  { word: "xiaoyuan", name: "校园" },
+  { word: "dushi", name: "都市" },
+  { word: "kongbu", name: "恐怖" },
+  { word: "meishi", name: "美食" },
+  { word: "lizhi", name: "励志" },
+  { word: "chuanyue", name: "穿越" },
+  { word: "gaoxiao", name: "搞笑" },
+];
+
+// 排序方式。
+const ORDERINGS: { value: string; name: string }[] = [
+  { value: "-datetime_updated", name: "最新" },
+  { value: "-popular", name: "人气" },
+];
+
 // 阅读进度：每章记住看到第几页（纯本地）。
 const PROGRESS_KEY = "ai-phone-comic-progress-v1";
 function loadProgress(): Record<string, number> {
