@@ -152,6 +152,16 @@ export default function ComicApp({ onClose }: Props) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const restoreTo = useRef(0);
 
+  // 探索页：推荐 / 分类
+  const [exploreTab, setExploreTab] = useState<ExploreTab>("recommend");
+  const [theme, setTheme] = useState("");
+  const [ordering, setOrdering] = useState("-datetime_updated");
+  const [catComics, setCatComics] = useState<Comic[]>([]);
+  const [catPage, setCatPage] = useState(1);
+  const [catTotal, setCatTotal] = useState(0);
+  const [catLoading, setCatLoading] = useState(false);
+  const [catError, setCatError] = useState<string | null>(null);
+
   const call = useCallback(async (action: string, payload?: Record<string, string>) => {
     const response = await fetch("/api/comic/copy", {
       method: "POST",
