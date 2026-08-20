@@ -8,6 +8,7 @@ type Chapter = { id: string; title: string; comicId: string; section: string; sl
 type Details = Comic & { description?: string; updateTime?: string; chapters: Chapter[] };
 type HomeData = Record<string, Comic[]>;
 type View = "home" | "search" | "explore" | "detail" | "reader" | "favorites";
+type ExploreTab = "recommend" | "category";
 
 const SOURCES: { name: string; active: boolean }[] = [
   { name: "包子漫画", active: false },
