@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useComicStore } from "@/lib/comic/store";
 
 type Props = { onClose: () => void };
@@ -22,6 +22,27 @@ const SOURCES: { name: string; active: boolean }[] = [
   { name: "紳士漫畫", active: false },
   { name: "漫画1234", active: false },
 ];
+
+// 阅读进度：每章记住看到第几页（纯本地）。
+const PROGRESS_KEY = "ai-phone-comic-progress-v1";
+function loadProgress(): Record<string, number> {
+  if (typeof window === "undefined") return {};
+  try {
+    return JSON.parse(window.localStorage.getItem(PROGRESS_KEY) || "{}") as Record<string, number>;
+  } catch {
+    return {};
+  }
+}
+function saveProgress(chapterId: string, page: number): void {
+  if (typeof window === "undefined" || !chapterId) return;
+  try {
+    const all = loadProgress();
+    all[chapterId] = page;
+    window.localStorage.setItem(PROGRESS_KEY, JSON.stringify(all));
+  } catch {
+    // ignore
+  }
+}
 
 function Cover({ comic, onOpen }: { comic: Comic; onOpen?: () => void }) {
   const [broken, setBroken] = useState(false);
@@ -92,10 +113,13 @@ export default function ComicApp({ onClose }: Props) {
   const [detailComic, setDetailComic] = useState<Comic | null>(null);
   const [detailFrom, setDetailFrom] = useState<View>("explore");
   const [pages, setPages] = useState<string[]>([]);
-  const [chapterTitle, setChapterTitle] = useState("");
+  const [chapter, setChapter] = useState<Chapter | null>(null);
+  const [curPage, setCurPage] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const restoreTo = useRef(0);
 
   const call = useCallback(async (action: string, payload?: Record<string, string>) => {
     const response = await fetch("/api/comic/copy", {
@@ -157,16 +181,18 @@ export default function ComicApp({ onClose }: Props) {
   );
 
   const openReader = useCallback(
-    async (chapter: Chapter) => {
+    async (target: Chapter) => {
       setPages([]);
-      setChapterTitle(chapter.title);
+      setChapter(target);
+      setCurPage(0);
+      restoreTo.current = loadProgress()[target.id] || 0;
       setView("reader");
       setLoading(true);
       setError(null);
       try {
-        const data = await call("chapter", { comicId: chapter.comicId, chapterId: chapter.id });
+        const data = await call("chapter", { comicId: target.comicId, chapterId: target.id });
         setPages(Array.isArray(data) ? data.filter(Boolean) : []);
-        if (detailComic) addHistory(detailComic, chapter.id, chapter.title);
+        if (detailComic) addHistory(detailComic, target.id, target.title);
       } catch (cause) {
         setError(cause instanceof Error ? cause.message : String(cause));
       } finally {
@@ -175,6 +201,44 @@ export default function ComicApp({ onClose }: Props) {
     },
     [call, detailComic, addHistory],
   );
+
+  function gotoChapter(offset: number) {
+    if (!detail || !chapter) return;
+    const idx = detail.chapters.findIndex((item) => item.id === chapter.id);
+    const next = detail.chapters[idx + offset];
+    if (next) void openReader(next);
+    else setToast(offset > 0 ? "已经是最后一章" : "已经是第一章");
+  }
+
+  useEffect(() => {
+    if (view !== "reader" || loading || pages.length === 0) return;
+    const container = scrollRef.current;
+    if (!container) return;
+    const target = restoreTo.current;
+    if (target > 0 && target < pages.length) {
+      const timer = setTimeout(() => {
+        const child = container.children[target] as HTMLElement | undefined;
+        if (child) container.scrollTop = child.offsetTop;
+      }, 120);
+      return () => clearTimeout(timer);
+    }
+  }, [view, loading, pages.length]);
+
+  function onReaderScroll() {
+    const container = scrollRef.current;
+    if (!container || pages.length === 0) return;
+    const mid = container.scrollTop + container.clientHeight / 2;
+    let index = 0;
+    for (let i = 0; i < container.children.length; i++) {
+      const child = container.children[i] as HTMLElement;
+      if (child.offsetTop <= mid) index = i;
+      else break;
+    }
+    if (index !== curPage) {
+      setCurPage(index);
+      if (chapter) saveProgress(chapter.id, index);
+    }
+  }
 
   const openExplore = useCallback(() => {
     setView("explore");
@@ -480,16 +544,19 @@ export default function ComicApp({ onClose }: Props) {
             <div className="px-3">
               <p className="mb-2 text-sm font-bold text-gray-800">章节 {detail.chapters.length}</p>
               <div className="grid grid-cols-3 gap-2">
-                {detail.chapters.map((chapter) => (
-                  <button
-                    key={chapter.id}
-                    type="button"
-                    onClick={() => void openReader(chapter)}
-                    className="truncate rounded-lg bg-gray-100 px-2 py-2 text-center text-xs text-gray-700 active:bg-blue-100"
-                  >
-                    {chapter.title}
-                  </button>
-                ))}
+                {detail.chapters.map((item) => {
+                  const read = typeof window !== "undefined" && loadProgress()[item.id] !== undefined;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => void openReader(item)}
+                      className={"truncate rounded-lg px-2 py-2 text-center text-xs active:bg-blue-100 " + (read ? "bg-blue-50 text-blue-600" : "bg-gray-100 text-gray-700")}
+                    >
+                      {item.title}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -499,15 +566,26 @@ export default function ComicApp({ onClose }: Props) {
   }
 
   function renderReader() {
+    const idx = detail && chapter ? detail.chapters.findIndex((item) => item.id === chapter.id) : -1;
+    const hasPrev = idx > 0;
+    const hasNext = detail ? idx >= 0 && idx < detail.chapters.length - 1 : false;
+    const total = pages.length;
+    const percent = total > 0 ? Math.min(100, Math.round(((curPage + 1) / total) * 100)) : 0;
     return (
       <div className="flex flex-1 flex-col overflow-hidden">
-        <div className="flex flex-none items-center gap-2 border-b bg-white px-3 pb-2 pt-8">
-          <button type="button" onClick={() => setView("detail")} className="flex h-8 w-8 items-center justify-center text-gray-500" aria-label="返回">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
-          </button>
-          <span className="line-clamp-1 text-sm font-bold text-gray-800">{chapterTitle}</span>
+        <div className="flex-none bg-white pt-8">
+          <div className="flex items-center gap-2 px-3 pb-1">
+            <button type="button" onClick={() => setView("detail")} className="flex h-8 w-8 items-center justify-center text-gray-500" aria-label="返回">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
+            </button>
+            <span className="line-clamp-1 flex-1 text-sm font-bold text-gray-800">{chapter ? chapter.title : ""}</span>
+            <span className="flex-none text-xs text-gray-400">{total > 0 ? curPage + 1 + " / " + total : ""}</span>
+          </div>
+          <div className="h-0.5 w-full bg-gray-100">
+            <div className="h-full bg-blue-500 transition-all" style={{ width: percent + "%" }} />
+          </div>
         </div>
-        <div className="flex-1 overflow-y-auto bg-black">
+        <div ref={scrollRef} onScroll={onReaderScroll} className="flex-1 overflow-y-auto bg-black">
           {loading && <p className="py-10 text-center text-sm text-gray-400">正在加载图片...</p>}
           {error && (
             <div className="m-3 rounded-lg bg-red-50 p-3 text-sm text-red-600">加载失败：{error}</div>
@@ -518,6 +596,26 @@ export default function ComicApp({ onClose }: Props) {
           {pages.map((src, index) => (
             <ReaderImage key={index} src={src} />
           ))}
+          {!loading && pages.length > 0 && (
+            <div className="flex items-center justify-between gap-3 bg-white p-4">
+              <button
+                type="button"
+                onClick={() => gotoChapter(-1)}
+                disabled={!hasPrev}
+                className={"flex-1 rounded-full py-2 text-sm font-medium " + (hasPrev ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-300")}
+              >
+                上一章
+              </button>
+              <button
+                type="button"
+                onClick={() => gotoChapter(1)}
+                disabled={!hasNext}
+                className={"flex-1 rounded-full py-2 text-sm font-medium " + (hasNext ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-300")}
+              >
+                下一章
+              </button>
+            </div>
+          )}
         </div>
       </div>
     );
