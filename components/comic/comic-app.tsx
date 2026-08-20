@@ -132,10 +132,45 @@ function Cover({ comic, onOpen }: { comic: Comic; onOpen?: () => void }) {
   );
 }
 
-function ReaderImage({ src }: { src: string }) {
+function ReaderImage({ img, source }: { img: PageImg; source: Source }) {
   const [broken, setBroken] = useState(false);
-  if (broken || !src) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  // 禁漫图片走服务端代理（同源，canvas 可读；且带正确 UA/Referer 过防盗链）。
+  const src = source === "jm" ? `/api/comic/jm/image?url=${encodeURIComponent(img.url)}` : img.url;
+  const needDescramble = img.num > 1;
+
+  useEffect(() => {
+    if (!needDescramble) return;
+    const image = new Image();
+    image.crossOrigin = "anonymous";
+    image.onload = () => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const num = img.num;
+      canvas.width = image.width;
+      canvas.height = image.height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      const blockSize = Math.floor(image.height / num);
+      const remainder = image.height % num;
+      // 乱序图是竖向分块倒序，取最后一块放最上，逐块还原。
+      let y = 0;
+      for (let i = num - 1; i >= 0; i--) {
+        const start = i * blockSize;
+        const h = blockSize + (i === num - 1 ? remainder : 0);
+        ctx.drawImage(image, 0, start, image.width, h, 0, y, image.width, h);
+        y += h;
+      }
+    };
+    image.onerror = () => setBroken(true);
+    image.src = src;
+  }, [src, needDescramble, img.num]);
+
+  if (broken || !img.url) {
     return <div className="flex h-40 w-full items-center justify-center text-xs text-gray-400">图片加载失败</div>;
+  }
+  if (needDescramble) {
+    return <canvas ref={canvasRef} className="block w-full" />;
   }
   return (
     <img
@@ -175,7 +210,7 @@ export default function ComicApp({ onClose }: Props) {
   const [detail, setDetail] = useState<Details | null>(null);
   const [detailComic, setDetailComic] = useState<Comic | null>(null);
   const [detailFrom, setDetailFrom] = useState<View>("explore");
-  const [pages, setPages] = useState<string[]>([]);
+  const [pages, setPages] = useState<PageImg[]>([]);
   const [chapter, setChapter] = useState<Chapter | null>(null);
   const [curPage, setCurPage] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -298,7 +333,15 @@ export default function ComicApp({ onClose }: Props) {
       setError(null);
       try {
         const data = await call("chapter", { comicId: target.comicId, chapterId: target.id });
-        setPages(Array.isArray(data) ? data.filter(Boolean) : []);
+        let normalized: PageImg[] = [];
+        if (Array.isArray(data)) {
+          if (source === "jm") {
+            normalized = data.filter((x: any) => x && x.url).map((x: any) => ({ url: String(x.url), num: Number(x.num) || 0 }));
+          } else {
+            normalized = data.filter(Boolean).map((u: string) => ({ url: u, num: 0 }));
+          }
+        }
+        setPages(normalized);
         if (detailComic) addHistory(detailComic, target.id, target.title);
       } catch (cause) {
         setError(cause instanceof Error ? cause.message : String(cause));
@@ -790,8 +833,8 @@ export default function ComicApp({ onClose }: Props) {
           {!loading && !error && pages.length === 0 && (
             <p className="py-10 text-center text-sm text-gray-400">本章暂无内容</p>
           )}
-          {pages.map((src, index) => (
-            <ReaderImage key={index} src={src} />
+          {pages.map((p, index) => (
+            <ReaderImage key={index} img={p} source={source} />
           ))}
           {!loading && pages.length > 0 && (
             <div className="flex items-center justify-between gap-3 bg-white p-4">
