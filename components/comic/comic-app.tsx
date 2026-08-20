@@ -392,8 +392,13 @@ export default function ComicApp({ onClose }: Props) {
 
   const openExplore = useCallback(() => {
     setView("explore");
-    if (Object.keys(home).length === 0) void loadHome();
-  }, [home, loadHome]);
+  }, []);
+
+  // 进入探索页（或切源后）自动拉当前源的推荐首页。
+  useEffect(() => {
+    if (view !== "explore" || exploreTab !== "recommend") return;
+    if (Object.keys(home).length === 0 && !loading) void loadHome();
+  }, [view, exploreTab, source, home, loading, loadHome]);
 
   useEffect(() => {
     if (!toast) return;
@@ -401,9 +406,26 @@ export default function ComicApp({ onClose }: Props) {
     return () => clearTimeout(timer);
   }, [toast]);
 
-  function pickSource(source: { name: string; active: boolean }) {
-    if (source.active) openExplore();
-    else setToast(source.name + " 暂未接入，先用拷贝漫画吧");
+  function pickSource(item: { name: string; active: boolean }) {
+    if (!item.active) {
+      setToast(item.name + " 暂未接入，先用拷贝漫画或禁漫天堂吧");
+      return;
+    }
+    const next: Source = item.name === "禁漫天堂" ? "jm" : "copy";
+    if (next !== source) {
+      // 切源：清空旧源数据，重置分类筛选到新源默认值。
+      setSource(next);
+      setHome({});
+      setResults([]);
+      setCatComics([]);
+      setCatTotal(0);
+      setCatError(null);
+      setError(null);
+      setTheme("");
+      setOrdering(SOURCE_META[next].defaultOrdering);
+      setExploreTab("recommend");
+    }
+    setView("explore");
   }
 
   function handleFavorite() {
@@ -603,7 +625,7 @@ export default function ComicApp({ onClose }: Props) {
           <button type="button" onClick={() => setView("home")} className="flex h-8 w-8 items-center justify-center text-gray-500" aria-label="返回">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
           </button>
-          <span className="text-base font-bold text-gray-800">拷贝漫画</span>
+          <span className="text-base font-bold text-gray-800">{SOURCE_META[source].name}</span>
           <button
             type="button"
             onClick={() => (exploreTab === "recommend" ? void loadHome() : void loadCategory(theme, ordering, 1, false))}
@@ -662,22 +684,22 @@ export default function ComicApp({ onClose }: Props) {
           </div>
         ) : (
           <div className="flex flex-1 flex-col overflow-hidden">
-            {/* 排序 */}
-            <div className="flex flex-none gap-2 px-3 pt-2">
-              {ORDERINGS.map((o) => (
+            {/* 排序（按源切换选项） */}
+            <div className="flex flex-none gap-2 overflow-x-auto px-3 pt-2">
+              {(source === "jm" ? JM_ORDERINGS : ORDERINGS).map((o) => (
                 <button
                   key={o.value}
                   type="button"
                   onClick={() => selectOrdering(o.value)}
-                  className={"rounded-full px-3 py-1 text-xs " + (ordering === o.value ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600")}
+                  className={"flex-none rounded-full px-3 py-1 text-xs " + (ordering === o.value ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600")}
                 >
                   {o.name}
                 </button>
               ))}
             </div>
-            {/* 题材 */}
+            {/* 题材（按源切换选项） */}
             <div className="flex flex-none flex-wrap gap-1.5 px-3 py-2">
-              {THEMES.map((t) => (
+              {(source === "jm" ? JM_THEMES : THEMES).map((t) => (
                 <button
                   key={t.word || "all"}
                   type="button"
