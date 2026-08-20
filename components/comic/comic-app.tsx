@@ -646,7 +646,7 @@ export default function ComicApp({ onClose }: Props) {
 
   function renderFavorites() {
     return (
-      <div className="flex flex-1 flex-col overflow-hidden pt-1">
+      <div className="flex flex-1 flex-col overflow-hidden pt-10">
         <div className="flex flex-none items-center gap-2 border-b px-4 pb-2 pt-2">
           <span className="text-xl font-bold text-gray-800">收藏</span>
           <span className="ml-2 rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-600">{favorites.length}</span>
@@ -996,7 +996,7 @@ export default function ComicApp({ onClose }: Props) {
       </div>
     );
     return (
-      <div className="flex flex-1 flex-col overflow-hidden pt-1">
+      <div className="flex flex-1 flex-col overflow-hidden pt-10">
         <div className="flex flex-none items-center gap-2 border-b px-3 pb-2 pt-2">
           <button type="button" onClick={() => setView("home")} className="flex h-8 w-8 items-center justify-center text-gray-500" aria-label="返回">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
