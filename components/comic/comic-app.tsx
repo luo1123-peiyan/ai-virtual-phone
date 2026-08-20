@@ -367,6 +367,9 @@ export default function ComicApp({ onClose }: Props) {
 
   const openDetail = useCallback(
     async (comic: Comic, from: View) => {
+      // 聚合搜索的结果可能来自别的源，点开时先切到该漫画所属源，保证详情/章节/图片走对端点。
+      if (comic.src && comic.src !== source) setSource(comic.src);
+      const useSrc: Source = comic.src || source;
       setDetailComic(comic);
       setDetailFrom(from);
       setDetail(null);
@@ -374,7 +377,7 @@ export default function ComicApp({ onClose }: Props) {
       setLoading(true);
       setError(null);
       try {
-        const data = (await call("info", { id: comic.id })) as Details;
+        const data = (await callSource(useSrc, "info", { id: comic.id })) as Details;
         setDetail(data);
       } catch (cause) {
         setError(cause instanceof Error ? cause.message : String(cause));
@@ -382,7 +385,7 @@ export default function ComicApp({ onClose }: Props) {
         setLoading(false);
       }
     },
-    [call],
+    [call, source],
   );
 
   const openReader = useCallback(
