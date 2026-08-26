@@ -368,6 +368,31 @@ export function ChatSettingsPanel({
     const [showSearch, setShowSearch] = useState(false);
     // TA 的电脑：翻看角色云端电脑（连接了角色电脑才显示入口）
     const [showComputer, setShowComputer] = useState(false);
+    // 用户面具：为当前角色绑定一个 User 身份（persona）
+    const [showPersonaPicker, setShowPersonaPicker] = useState(false);
+    const [personaVersion, setPersonaVersion] = useState(0);
+    const userPersonas = useMemo<UserIdentity[]>(
+        () => (session.isGroup ? [] : loadUserIdentities()),
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [session.isGroup, personaVersion],
+    );
+    const boundPersonaId = useMemo<string | undefined>(() => {
+        if (session.isGroup) return undefined;
+        return resolveBinding(loadBindingConfig(), session.contactId, "chat").userIdentityId;
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [session.isGroup, session.contactId, personaVersion]);
+    const boundPersona = userPersonas.find(p => p.id === boundPersonaId) || null;
+    const bindPersonaToCharacter = (personaId: string) => {
+        const config = loadBindingConfig();
+        const binding = getCharacterBinding(config, session.contactId);
+        const next = setCharacterBinding(config, {
+            ...binding,
+            defaults: { ...binding.defaults, userIdentityId: personaId },
+        });
+        saveBindingConfig(next);
+        setPersonaVersion(v => v + 1);
+        setShowPersonaPicker(false);
+    };
     const [searchQuery, setSearchQuery] = useState("");
     const [submittedSearchQuery, setSubmittedSearchQuery] = useState("");
     const [searchHistoryMessages, setSearchHistoryMessages] = useState<ChatMessage[]>([]);
