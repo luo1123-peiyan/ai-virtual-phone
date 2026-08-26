@@ -37,7 +37,7 @@ import { triggerDeleteFriendReaction } from "@/lib/friend-request-engine";
 import { loadCharacters } from "@/lib/character-storage";
 import { isAgentComputerConfigured } from "@/lib/agent-computer";
 import { CharacterComputerPage } from "./character-computer-page";
-import { resolveUserIdentity, loadBindingConfig, loadPresets, resolveBinding, loadUserIdentities, getCharacterBinding, setCharacterBinding, saveBindingConfig } from "@/lib/settings-storage";
+import { resolveUserIdentity, loadBindingConfig, loadPresets, resolveBinding, loadUserIdentities, saveUserIdentities, getCharacterBinding, setCharacterBinding, saveBindingConfig } from "@/lib/settings-storage";
 import type { UserIdentity } from "@/components/settings/user-identity";
 import { getStatusRegionConfig, saveStatusRegionConfig, presetSupportsStatusRegion, isCustomStatusRegionActive, type StatusRegionConfig } from "@/lib/chat-status-region";
 import { downloadFile } from "@/lib/download-utils";
