@@ -1489,17 +1489,45 @@ export function ChatSettingsPanel({
 
             {/* 用户面具选择：底部弹窗，点选即绑定到当前角色 */}
             {showPersonaPicker && (
-                <div className="modal-overlay modal-overlay-bottom" onClick={() => setShowPersonaPicker(false)}>
+                <div className="modal-overlay modal-overlay-bottom" onClick={() => { setShowPersonaPicker(false); resetPersonaDraft(); }}>
                     <div className="modal-sheet" data-ui="modal-sheet" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header" data-ui="modal-header">
-                            <button onClick={() => setShowPersonaPicker(false)} className="modal-header-btn modal-header-btn-muted"><X size={18} /></button>
-                            <span className="modal-header-title">选择用户面具</span>
-                            <span style={{ width: 32 }} />
+                            <button onClick={() => { setShowPersonaPicker(false); resetPersonaDraft(); }} className="modal-header-btn modal-header-btn-muted"><X size={18} /></button>
+                            <span className="modal-header-title">{creatingPersona ? "新建面具" : "选择用户面具"}</span>
+                            {creatingPersona ? (
+                                <button onClick={createPersona} className="modal-header-btn modal-header-btn-action" disabled={!newPersonaName.trim()}><Check size={18} /></button>
+                            ) : (
+                                <button onClick={() => setCreatingPersona(true)} className="modal-header-btn modal-header-btn-action"><Plus size={18} /></button>
+                            )}
                         </div>
                         <div className="modal-body hide-scrollbar flex flex-col gap-2 pb-10" data-ui="modal-body">
-                            {userPersonas.length === 0 ? (
+                            {creatingPersona ? (
+                                <div className="flex flex-col gap-3">
+                                    <div className="flex flex-col gap-1">
+                                        <label className="menu-desc ml-1">面具名字</label>
+                                        <Input
+                                            type="text"
+                                            value={newPersonaName}
+                                            onChange={(e) => setNewPersonaName(e.target.value)}
+                                            placeholder="比如：念念"
+                                            autoFocus
+                                        />
+                                    </div>
+                                    <div className="flex flex-col gap-1">
+                                        <label className="menu-desc ml-1">人设 / 自定义设定</label>
+                                        <textarea
+                                            value={newPersonaDesc}
+                                            onChange={(e) => setNewPersonaDesc(e.target.value)}
+                                            placeholder="这个面具是谁？性格、身份、说话风格……AI 会以此了解此刻的你。"
+                                            rows={5}
+                                            className="ui-textarea"
+                                        />
+                                    </div>
+                                    <p className="menu-desc ml-1">保存后自动绑定到当前角色；更详细的头像/年龄/职业可去「设置 → User Identity」补充。</p>
+                                </div>
+                            ) : userPersonas.length === 0 ? (
                                 <div className="ui-empty">
-                                    <span className="menu-desc">还没有用户面具，去「设置 → User Identity」新建一个吧。</span>
+                                    <span className="menu-desc">还没有用户面具，点右上角 + 新建一个吧。</span>
                                 </div>
                             ) : (
                                 userPersonas.map(persona => {
