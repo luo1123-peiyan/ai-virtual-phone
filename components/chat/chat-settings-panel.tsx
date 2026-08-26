@@ -808,6 +808,16 @@ export function ChatSettingsPanel({
                         <div className="menu-label-group"><span className="menu-label">查找聊天记录</span></div>
                         <div className="menu-right"><ChevronRight size={16} /></div>
                     </button>
+                    {!session.isGroup && (
+                        <button className="menu-item" onClick={() => setShowPersonaPicker(true)}>
+                            <ChatInfoIcon icon={Drama} color={BINDING_ACCENTS.preset} />
+                            <div className="menu-label-group"><span className="menu-label">用户面具</span></div>
+                            <div className="menu-right">
+                                <span className="menu-desc mr-1">{boundPersona?.name || "默认"}</span>
+                                <ChevronRight size={16} />
+                            </div>
+                        </button>
+                    )}
                     {!session.isGroup && isAgentComputerConfigured() && (
                         <button className="menu-item" onClick={() => setShowComputer(true)}>
                             <ChatInfoIcon icon={Laptop} color={BINDING_ACCENTS.memory} />
