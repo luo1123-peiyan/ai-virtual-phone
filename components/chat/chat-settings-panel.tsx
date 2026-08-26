@@ -382,7 +382,7 @@ export function ChatSettingsPanel({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [session.isGroup, session.contactId, personaVersion]);
     const boundPersona = userPersonas.find(p => p.id === boundPersonaId) || null;
-    const bindPersonaToCharacter = (personaId: string) => {
+    const bindPersonaToCharacter = (personaId: string, close = true) => {
         const config = loadBindingConfig();
         const binding = getCharacterBinding(config, session.contactId);
         const next = setCharacterBinding(config, {
@@ -391,7 +391,33 @@ export function ChatSettingsPanel({
         });
         saveBindingConfig(next);
         setPersonaVersion(v => v + 1);
-        setShowPersonaPicker(false);
+        if (close) setShowPersonaPicker(false);
+    };
+    // 内联新建面具（无需跳去设置页）
+    const [creatingPersona, setCreatingPersona] = useState(false);
+    const [newPersonaName, setNewPersonaName] = useState("");
+    const [newPersonaDesc, setNewPersonaDesc] = useState("");
+    const resetPersonaDraft = () => {
+        setCreatingPersona(false);
+        setNewPersonaName("");
+        setNewPersonaDesc("");
+    };
+    const createPersona = () => {
+        const name = newPersonaName.trim();
+        if (!name) return;
+        const persona: UserIdentity = {
+            id: `identity-${Date.now()}`,
+            name,
+            bio: "",
+            gender: "保密",
+            age: "",
+            occupation: "",
+            customSettings: newPersonaDesc.trim(),
+        };
+        saveUserIdentities([persona, ...loadUserIdentities()]);
+        setPersonaVersion(v => v + 1);
+        bindPersonaToCharacter(persona.id, false);
+        resetPersonaDraft();
     };
     const [searchQuery, setSearchQuery] = useState("");
     const [submittedSearchQuery, setSubmittedSearchQuery] = useState("");
