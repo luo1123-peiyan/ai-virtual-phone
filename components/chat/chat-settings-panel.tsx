@@ -1461,6 +1461,52 @@ export function ChatSettingsPanel({
                 />
             )}
 
+            {/* 用户面具选择：底部弹窗，点选即绑定到当前角色 */}
+            {showPersonaPicker && (
+                <div className="modal-overlay modal-overlay-bottom" onClick={() => setShowPersonaPicker(false)}>
+                    <div className="modal-sheet" data-ui="modal-sheet" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header" data-ui="modal-header">
+                            <button onClick={() => setShowPersonaPicker(false)} className="modal-header-btn modal-header-btn-muted"><X size={18} /></button>
+                            <span className="modal-header-title">选择用户面具</span>
+                            <span style={{ width: 32 }} />
+                        </div>
+                        <div className="modal-body hide-scrollbar flex flex-col gap-2 pb-10" data-ui="modal-body">
+                            {userPersonas.length === 0 ? (
+                                <div className="ui-empty">
+                                    <span className="menu-desc">还没有用户面具，去「设置 → User Identity」新建一个吧。</span>
+                                </div>
+                            ) : (
+                                userPersonas.map(persona => {
+                                    const active = persona.id === boundPersonaId;
+                                    return (
+                                        <button
+                                            key={persona.id}
+                                            type="button"
+                                            onClick={() => bindPersonaToCharacter(persona.id)}
+                                            className="menu-item"
+                                            style={{ borderRadius: 12, border: active ? "1px solid var(--c-icon-active, #3b82f6)" : "1px solid var(--c-line, #eee)" }}
+                                        >
+                                            {persona.avatarUrl ? (
+                                                <img src={persona.avatarUrl} alt={persona.name} className="h-9 w-9 rounded-full object-cover shrink-0" />
+                                            ) : (
+                                                <div className="h-9 w-9 rounded-full bg-[var(--c-page-body-bg)] text-[var(--c-icon)] grid place-items-center shrink-0">
+                                                    <Drama size={18} />
+                                                </div>
+                                            )}
+                                            <div className="menu-label-group min-w-0">
+                                                <span className="menu-label truncate">{persona.name || "未命名面具"}</span>
+                                                <span className="menu-desc truncate">{persona.customSettings || persona.bio || persona.occupation || "未填写设定"}</span>
+                                            </div>
+                                            {active && <Check size={18} className="ml-auto shrink-0 text-[var(--c-icon-active,#3b82f6)]" />}
+                                        </button>
+                                    );
+                                })
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Sub-page: Search History */}
             {showSearch && (
                 <div style={{ position: "absolute", inset: 0, zIndex: 9999, background: "#ffffff" }}>
