@@ -372,6 +372,8 @@ export function ChatSettingsPanel({
     const [showComputer, setShowComputer] = useState(false);
     // 用户面具：为当前角色绑定一个 User 身份（persona）
     const [showPersonaPicker, setShowPersonaPicker] = useState(false);
+    // 回车发送：全局聊天输入设置（Enter 发送，Shift+Enter 换行）
+    const [enterToSendEnabled, setEnterToSendEnabled] = useState(() => loadChatAppSettings().enterToSendEnabled === true);
     const [personaVersion, setPersonaVersion] = useState(0);
     const userPersonas = useMemo<UserIdentity[]>(
         () => (session.isGroup ? [] : loadUserIdentities()),
