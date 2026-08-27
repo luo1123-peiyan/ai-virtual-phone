@@ -982,6 +982,22 @@ export function ChatSettingsPanel({
                         </div>
                     </div>
                     <div className="menu-item">
+                        <ChatInfoIcon icon={MessageSquare} color={BINDING_ACCENTS.api} />
+                        <div className="menu-label-group">
+                            <span className="menu-label">回车发送消息</span>
+                            <span className="menu-desc">开启后回车键发送，Shift+回车换行；此为全局设置</span>
+                        </div>
+                        <div className="menu-right">
+                            <Toggle
+                                checked={enterToSendEnabled}
+                                onChange={c => {
+                                    setEnterToSendEnabled(c);
+                                    saveChatAppSettings({ ...loadChatAppSettings(), enterToSendEnabled: c });
+                                }}
+                            />
+                        </div>
+                    </div>
+                    <div className="menu-item">
                         <ChatInfoIcon icon={ImageIcon} color={BINDING_ACCENTS.api} />
                         <div className="menu-label-group">
                             <span className="menu-label">传入最近图片数</span>
