@@ -16,6 +16,8 @@ import {
     removeChatContact,
     normalizeVisionImagePromptLimit,
     MAX_VISION_IMAGE_PROMPT_LIMIT,
+    loadChatAppSettings,
+    saveChatAppSettings,
     type ChatMessage,
 } from "@/lib/chat-storage";
 import {
