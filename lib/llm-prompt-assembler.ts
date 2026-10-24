@@ -101,6 +101,7 @@ export interface AssemblerInput {
     phoneSnapshotSummary?: string;
     phoneLastRefreshAt?: string;
     characterRelations?: string;          // formatted world-group relationship marker
+    relationshipPromptLine?: string;      // 【关系系统】char-user 关系与好感度注入行
     dwellingContext?: string;               // formatted dwelling layout snapshot for cross-app reference
     dwellingRoom?: string;
     dwellingFurniture?: string;
@@ -639,6 +640,15 @@ export function assemblePromptPayload(input: AssemblerInput): LLMMessage[] {
     // {{state}} is the explicit state update input; keep it separate from chat history/short-term memory.
     const latestStateValues = input.initialStateValues ?? findLatestStateValues(history);
     const stateStr = formatStateValuesForPrompt(latestStateValues);
+    if (input.relationshipPromptLine) {
+        blocks.push({
+            text: input.relationshipPromptLine,
+            role: "system",
+            depth: 1000000,
+            order: 0,
+            marker: "relationship-system",
+        });
+    }
 
     if (preset) {
         // ════════════════════════════════════════════════════════
