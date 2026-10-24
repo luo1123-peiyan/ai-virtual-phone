@@ -34,7 +34,7 @@ import {
     pruneExpiredGroupMutes,
     type GroupAdminAction,
 } from "@/lib/group-admin";
-import { clearChatOfflineTurns, loadChatOfflineTurns, type ChatOfflineTurn } from "@/lib/chat-offline-storage";
+import { clearChatOfflineTurns } from "@/lib/chat-offline-storage";
 import { triggerDeleteFriendReaction } from "@/lib/friend-request-engine";
 import { loadCharacters } from "@/lib/character-storage";
 import { isAgentComputerConfigured } from "@/lib/agent-computer";
@@ -430,29 +430,6 @@ export function ChatSettingsPanel({
     const [searchResults, setSearchResults] = useState<ChatMessage[]>([]);
     const [isSearching, setIsSearching] = useState(false);
     const searchRunRef = useRef(0);
-    const [offlineSearchMode, setOfflineSearchMode] = useState(false);
-    const [offlineTurns, setOfflineTurns] = useState<ChatOfflineTurn[]>([]);
-    const toggleOfflineSearchMode = () => {
-        const next = !offlineSearchMode;
-        setOfflineSearchMode(next);
-        if (next) setOfflineTurns(loadChatOfflineTurns(session.id));
-    };
-    type OfflineSearchItem = { id: string; role: "user" | "assistant"; content: string; createdAt: string };
-    const offlineItems = useMemo<OfflineSearchItem[]>(() => {
-        if (!offlineSearchMode) return [];
-        const q = submittedSearchQuery.trim().toLowerCase();
-        const items: OfflineSearchItem[] = [];
-        for (const t of offlineTurns) {
-            if (!q || t.userContent.toLowerCase().includes(q)) {
-                items.push({ id: `${t.id}_u`, role: "user", content: t.userContent, createdAt: t.createdAt });
-            }
-            if (!q || t.assistantContent.toLowerCase().includes(q)) {
-                items.push({ id: `${t.id}_a`, role: "assistant", content: t.assistantContent, createdAt: t.createdAt });
-            }
-        }
-        items.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-        return items.slice(-SEARCH_RESULT_LIMIT).reverse();
-    }, [offlineSearchMode, offlineTurns, submittedSearchQuery]);
 
     const loadSearchHistoryWindow = (count = CHAT_INITIAL_VISIBLE_MESSAGE_COUNT) => {
         const visibleMessages = loadChatMessages(session.id).filter(isSearchVisibleMessage);
@@ -468,7 +445,6 @@ export function ChatSettingsPanel({
         setSearchResults([]);
         setIsSearching(false);
         loadSearchHistoryWindow();
-        if (offlineSearchMode) setOfflineTurns(loadChatOfflineTurns(session.id));
         setShowSearch(true);
     };
 
@@ -495,12 +471,6 @@ export function ChatSettingsPanel({
         const runId = searchRunRef.current + 1;
         searchRunRef.current = runId;
         setSubmittedSearchQuery(rawQuery);
-
-        if (offlineSearchMode) {
-            setSearchResults([]);
-            setIsSearching(false);
-            return;
-        }
 
         if (!rawQuery) {
             setSearchResults([]);
@@ -1617,19 +1587,10 @@ export function ChatSettingsPanel({
                 <div style={{ position: "absolute", inset: 0, background: "var(--c-page-body-bg)" }}>
                     <PageShell title="查找聊天记录" onBack={closeSearchPanel}>
                         <div className="px-4 pt-2 pb-3 flex items-center gap-2">
-                            <button
-                                type="button"
-                                onClick={toggleOfflineSearchMode}
-                                aria-pressed={offlineSearchMode}
-                                title={offlineSearchMode ? "线下模式：搜索线下聊天记录" : "线上模式：搜索线上聊天记录"}
-                                className={`h-10 shrink-0 px-2.5 rounded-xl border text-[12px] font-medium select-none ${offlineSearchMode ? "border-transparent bg-[var(--c-accent,#0a84ff)] text-white" : "border-[var(--c-border)] bg-transparent text-[var(--c-icon)]"}`}
-                            >
-                                线下
-                            </button>
                             <input
                                 autoFocus
                                 type="text"
-                                placeholder={offlineSearchMode ? "搜索线下聊天记录..." : "搜索聊天记录..."}
+                                placeholder="搜索聊天记录..."
                                 value={searchQuery}
                                 onChange={e => setSearchQuery(e.target.value)}
                                 onKeyDown={e => {
@@ -1652,32 +1613,11 @@ export function ChatSettingsPanel({
                             </button>
                         </div>
                         <div className="flex flex-col gap-4 px-4 pb-4">
-                            {!offlineSearchMode && !searchMode && searchHistoryMessages.length === 0 && (
+                            {!searchMode && searchHistoryMessages.length === 0 && (
                                 <div className="ui-empty">
                                     <span className="menu-desc">暂无聊天记录</span>
                                 </div>
                             )}
-                            {offlineSearchMode ? (
-                                offlineItems.length === 0
-                                    ? <div className="ui-empty"><span className="menu-desc">{searchMode ? "无相关线下聊天记录" : "暂无线下聊天记录"}</span></div>
-                                    : offlineItems.map(item => (
-                                        <div key={item.id} className="flex flex-col gap-2">
-                                            <div className="flex justify-center">
-                                                <span className="chat-sys-msg py-[2px] px-2 rounded select-none">
-                                                    {new Date(item.createdAt).toLocaleString(undefined, { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}
-                                                </span>
-                                            </div>
-                                            <div className="chat-msg-wrapper" data-role={item.role}>
-                                                <div className="chat-msg-content-wrap flex flex-col min-w-0 max-w-[70%]">
-                                                    <div className={`chat-bubble-role-${item.role} rounded-md break-words whitespace-pre-wrap select-none`}>
-                                                        {item.content}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))
-                            ) : (
-                                <>
                             {searchMode && isSearching && (
                                 <div className="ui-empty">
                                     <span className="menu-desc">正在搜索...</span>
@@ -1702,8 +1642,6 @@ export function ChatSettingsPanel({
                                 <div className="ui-empty py-2">
                                     <span className="menu-desc">仅显示最近 {SEARCH_RESULT_LIMIT} 条结果</span>
                                 </div>
-                            )}
-                                </>
                             )}
                         </div>
                     </PageShell>
