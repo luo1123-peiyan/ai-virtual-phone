@@ -38,14 +38,14 @@ import { clearChatOfflineTurns, loadChatOfflineTurns, type ChatOfflineTurn } fro
 import { triggerDeleteFriendReaction } from "@/lib/friend-request-engine";
 import { loadCharacters } from "@/lib/character-storage";
 import { isAgentComputerConfigured } from "@/lib/agent-computer";
-import { RelationshipManagerSection } from "./relationship-section";
+import { loadRelationshipState, saveRelationshipState, recordRelationshipChange, effectiveRelationshipLevels } from "@/lib/relationship-storage";
 import { CharacterComputerPage } from "./character-computer-page";
 import { resolveUserIdentity, loadBindingConfig, loadPresets, resolveBinding, loadUserIdentities, saveUserIdentities, getCharacterBinding, setCharacterBinding, saveBindingConfig } from "@/lib/settings-storage";
 import type { UserIdentity } from "@/components/settings/user-identity";
 import { getStatusRegionConfig, saveStatusRegionConfig, presetSupportsStatusRegion, isCustomStatusRegionActive, type StatusRegionConfig } from "@/lib/chat-status-region";
 import { downloadFile } from "@/lib/download-utils";
 import { CustomStatusFrame } from "@/components/chat/custom-status-frame";
-import { ChevronRight, Image as ImageIcon, Video, Mic, UserMinus, UserPlus, Users, Pin, MessageSquare, Search, AlertCircle, Code, Laptop, Trash2, Smile, Sparkles, X, Play, Upload, Download, Drama, Check, Plus, type LucideIcon } from "lucide-react";
+import { ChevronRight, Image as ImageIcon, Video, Mic, UserMinus, UserPlus, Users, Pin, MessageSquare, Search, AlertCircle, Code, Laptop, Trash2, Smile, Sparkles, X, Play, Upload, Download, Drama, Check, Plus, Heart, type LucideIcon } from "lucide-react";
 import { BINDING_ACCENTS, CONTENT_APP_ACCENTS } from "@/lib/ui-accent-colors";
 import CSSSchemeBar from "@/components/ui/css-scheme-picker";
 import { ConfirmDialog } from "@/components/ui/modal";
@@ -423,6 +423,28 @@ export function ChatSettingsPanel({
         setPersonaVersion(v => v + 1);
         bindPersonaToCharacter(persona.id, false);
         resetPersonaDraft();
+    };
+    const [showRelationshipPage, setShowRelationshipPage] = useState(false);
+    const [relCustomName, setRelCustomName] = useState("");
+    const [relVersion, setRelVersion] = useState(0);
+    const relLevel = useMemo(() => {
+        void relVersion;
+        try { return loadRelationshipState(session.id).level; } catch { return "陌生"; }
+    }, [session.id, relVersion]);
+    const relLevels = useMemo(() => {
+        void relVersion;
+        try { return effectiveRelationshipLevels(session.id); } catch { return []; }
+    }, [session.id, relVersion]);
+    const openRelationshipPage = () => {
+        setRelCustomName("");
+        setShowRelationshipPage(true);
+    };
+    const applyRelationshipLevel = (name: string) => {
+        try {
+            const next = recordRelationshipChange(loadRelationshipState(session.id), name, "manual");
+            saveRelationshipState(next);
+            setRelVersion(v => v + 1);
+        } catch { /* noop */ }
     };
     const [searchQuery, setSearchQuery] = useState("");
     const [submittedSearchQuery, setSubmittedSearchQuery] = useState("");
@@ -886,7 +908,14 @@ export function ChatSettingsPanel({
                         </button>
                     )}
                     {!session.isGroup && (
-                        <RelationshipManagerSection sessionId={session.id} />
+                        <button className="menu-item" onClick={openRelationshipPage}>
+                            <ChatInfoIcon icon={Heart} color={BINDING_ACCENTS.preset} />
+                            <div className="menu-label-group"><span className="menu-label">当前关系</span></div>
+                            <div className="menu-right">
+                                <span className="menu-desc mr-1">{relLevel}</span>
+                                <ChevronRight size={16} />
+                            </div>
+                        </button>
                     )}
                     {!session.isGroup && isAgentComputerConfigured() && (
                         <button className="menu-item" onClick={() => setShowComputer(true)}>
@@ -1716,6 +1745,53 @@ export function ChatSettingsPanel({
                         </div>
                     </PageShell>
                 </div>
+                </div>
+            )}
+            {showRelationshipPage && (
+                <div style={{ position: "absolute", inset: 0, zIndex: 9999, background: "#ffffff" }}>
+                    <div style={{ position: "absolute", inset: 0, background: "var(--c-page-body-bg)" }}>
+                        <PageShell title="当前关系" onBack={() => setShowRelationshipPage(false)}>
+                            <div className="page-menu chat-info-menu">
+                                <div className="menu-group">
+                                    {relLevels.map(lv => (
+                                        <button key={lv.name} className="menu-item" onClick={() => applyRelationshipLevel(lv.name)}>
+                                            <div className="menu-label-group">
+                                                <span className="menu-label">{lv.name}</span>
+                                                <span className="menu-desc">好感度 {lv.min} 达到即解锁</span>
+                                            </div>
+                                            <div className="menu-right">
+                                                {relLevel === lv.name && <Check size={16} color="var(--c-icon-active,#ff7aa2)" />}
+                                                <ChevronRight size={16} />
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                                <div className="menu-group">
+                                    <div className="menu-item" style={{ cursor: "default" }}>
+                                        <div className="menu-label-group">
+                                            <span className="menu-label">自定义关系</span>
+                                            <span className="menu-desc">输入任意关系名，直接设为当前关系</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 px-4 pb-3">
+                                        <input
+                                            type="text"
+                                            value={relCustomName}
+                                            onChange={e => setRelCustomName(e.target.value)}
+                                            placeholder="如：未婚夫 / 师徒 / 宿敌"
+                                            className="ui-input flex-1 min-w-0"
+                                        />
+                                        <button
+                                            type="button"
+                                            disabled={!relCustomName.trim()}
+                                            onClick={() => { const n = relCustomName.trim(); if (n) { applyRelationshipLevel(n); setRelCustomName(""); } }}
+                                            className="ui-btn ui-btn-primary shrink-0"
+                                        >设为当前</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </PageShell>
+                    </div>
                 </div>
             )}
             {showStatusRegionDialog && (
