@@ -38,14 +38,14 @@ import { clearChatOfflineTurns, loadChatOfflineTurns, type ChatOfflineTurn } fro
 import { triggerDeleteFriendReaction } from "@/lib/friend-request-engine";
 import { loadCharacters } from "@/lib/character-storage";
 import { isAgentComputerConfigured } from "@/lib/agent-computer";
-import { loadRelationshipState, saveRelationshipState, recordRelationshipChange, effectiveRelationshipLevels } from "@/lib/relationship-storage";
+import { loadRelationshipState, saveRelationshipState, saveRelationshipConfig, loadRelationshipConfig, recordRelationshipChange, effectiveRelationshipLevels, type RelationshipLevel } from "@/lib/relationship-storage";
 import { CharacterComputerPage } from "./character-computer-page";
 import { resolveUserIdentity, loadBindingConfig, loadPresets, resolveBinding, loadUserIdentities, saveUserIdentities, getCharacterBinding, setCharacterBinding, saveBindingConfig } from "@/lib/settings-storage";
 import type { UserIdentity } from "@/components/settings/user-identity";
 import { getStatusRegionConfig, saveStatusRegionConfig, presetSupportsStatusRegion, isCustomStatusRegionActive, type StatusRegionConfig } from "@/lib/chat-status-region";
 import { downloadFile } from "@/lib/download-utils";
 import { CustomStatusFrame } from "@/components/chat/custom-status-frame";
-import { ChevronRight, Image as ImageIcon, Video, Mic, UserMinus, UserPlus, Users, Pin, MessageSquare, Search, AlertCircle, Code, Laptop, Trash2, Smile, Sparkles, X, Play, Upload, Download, Drama, Check, Plus, Heart, type LucideIcon } from "lucide-react";
+import { ChevronRight, Image as ImageIcon, Video, Mic, UserMinus, UserPlus, Users, Pin, MessageSquare, Search, AlertCircle, Code, Laptop, Trash2, Smile, Sparkles, X, Play, Upload, Download, Drama, Check, Plus, Heart, Gauge, type LucideIcon } from "lucide-react";
 import { BINDING_ACCENTS, CONTENT_APP_ACCENTS } from "@/lib/ui-accent-colors";
 import CSSSchemeBar from "@/components/ui/css-scheme-picker";
 import { ConfirmDialog } from "@/components/ui/modal";
@@ -435,6 +435,30 @@ export function ChatSettingsPanel({
         void relVersion;
         try { return effectiveRelationshipLevels(session.id); } catch { return []; }
     }, [session.id, relVersion]);
+    const [showLevelTablePage, setShowLevelTablePage] = useState(false);
+    const [levelDraft, setLevelDraft] = useState<RelationshipLevel[]>([]);
+    const [newLevelName, setNewLevelName] = useState("");
+    const [newLevelMin, setNewLevelMin] = useState("");
+    const openLevelTablePage = () => {
+        try {
+            const cfg = loadRelationshipConfig(session.id).levels;
+            setLevelDraft(cfg.length > 0 ? cfg.map(l => ({ ...l })) : effectiveRelationshipLevels(session.id).map(l => ({ ...l })));
+        } catch { setLevelDraft([]); }
+        setNewLevelName(""); setNewLevelMin("");
+        setShowLevelTablePage(true);
+    };
+    const saveLevelDraft = () => {
+        const cleaned = levelDraft
+            .map(l => ({ name: String(l.name || "").trim(), min: Number(l.min) }))
+            .filter(l => l.name && Number.isFinite(l.min))
+            .sort((a, b) => a.min - b.min);
+        if (cleaned.length === 0) return;
+        try {
+            saveRelationshipConfig(session.id, { levels: cleaned, systemHint: loadRelationshipConfig(session.id).systemHint });
+            setRelVersion(v => v + 1);
+            setShowLevelTablePage(false);
+        } catch { /* noop */ }
+    };
     const openRelationshipPage = () => {
         setRelCustomName("");
         setShowRelationshipPage(true);
@@ -908,7 +932,16 @@ export function ChatSettingsPanel({
                         </button>
                     )}
                     {!session.isGroup && (
-                        <button className="menu-item" onClick={openRelationshipPage}>
+                        <button className="menu-item" onClick={openLevelTablePage}>
+                            <ChatInfoIcon icon={Gauge} color={BINDING_ACCENTS.memory} />
+                            <div className="menu-label-group"><span className="menu-label">关系等级表</span></div>
+                            <div className="menu-right">
+                                <span className="menu-desc mr-1">{relLevels.map(l => l.name).join("→")}</span>
+                                <ChevronRight size={16} />
+                            </div>
+                        </button>
+                    )}
+                    {!session.isGroup && (<button className="menu-item" onClick={openRelationshipPage}>
                             <ChatInfoIcon icon={Heart} color={BINDING_ACCENTS.preset} />
                             <div className="menu-label-group"><span className="menu-label">当前关系</span></div>
                             <div className="menu-right">
@@ -1745,6 +1778,47 @@ export function ChatSettingsPanel({
                         </div>
                     </PageShell>
                 </div>
+                </div>
+            )}
+            {showLevelTablePage && (
+                <div style={{ position: "absolute", inset: 0, zIndex: 9999, background: "#ffffff" }}>
+                    <div style={{ position: "absolute", inset: 0, background: "var(--c-page-body-bg)" }}>
+                        <PageShell title="关系等级表" onBack={() => setShowLevelTablePage(false)}>
+                            <div className="page-menu chat-info-menu">
+                                <div className="menu-group">
+                                    {levelDraft.map((lv, i) => (
+                                        <div key={i} className="menu-item" style={{ cursor: "default" }}>
+                                            <div className="menu-label-group">
+                                                <span className="menu-label">{lv.name}</span>
+                                                <span className="menu-desc">好感度 ≥ {lv.min}</span>
+                                            </div>
+                                            <div className="menu-right">
+                                                <button type="button" className="ui-bare-btn text-[var(--c-icon)]" aria-label="删除" onClick={() => setLevelDraft(levelDraft.filter((_, j) => j !== i))}>
+                                                    <X size={16} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="menu-group">
+                                    <div className="menu-item" style={{ cursor: "default" }}>
+                                        <div className="menu-label-group">
+                                            <span className="menu-label">添加等级</span>
+                                            <span className="menu-desc">名称 + 好感度门槛，保存后自动按门槛排序</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 px-4 pb-3">
+                                        <input type="text" value={newLevelName} onChange={e => setNewLevelName(e.target.value)} placeholder="等级名" className="ui-input flex-1 min-w-0" />
+                                        <input type="number" min={0} max={100} value={newLevelMin} onChange={e => setNewLevelMin(e.target.value)} placeholder="门槛" className="ui-input !w-20 shrink-0" />
+                                        <button type="button" disabled={!newLevelName.trim() || newLevelMin === ""} onClick={() => { const n = newLevelName.trim(); const m = Number(newLevelMin); if (n && Number.isFinite(m)) { setLevelDraft([...levelDraft, { name: n, min: m }]); setNewLevelName(""); setNewLevelMin(""); } }} className="ui-btn ui-btn-primary shrink-0">添加</button>
+                                    </div>
+                                </div>
+                                <div className="px-4 pb-4">
+                                    <button type="button" className="ui-btn ui-btn-primary w-full" onClick={saveLevelDraft}>保存等级表</button>
+                                </div>
+                            </div>
+                        </PageShell>
+                    </div>
                 </div>
             )}
             {showRelationshipPage && (
