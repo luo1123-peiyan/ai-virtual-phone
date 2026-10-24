@@ -35,6 +35,7 @@ import {
 import { assemblePromptPayload, applyOutputRegex, type LLMMessage, type LLMContentPart } from "./llm-prompt-assembler";
 import { MacroEngine, postProcessTrim } from "./macro-engine";
 import { getStatusRegionConfig, resolveStatusRegionSection, resolveStatusRegionExampleLine, resolveStatusRegionComposition, resolveStatusRegionFullExample } from "./chat-status-region";
+import { buildRelationshipPromptLine } from "./relationship-storage";
 import {
     buildProviderDebugMessages,
     buildProviderRequest,
@@ -1546,6 +1547,18 @@ export function touchNativeExpandedToolSource(sourceIds: string[], sourceId: str
     return next.slice(-MAX_NATIVE_EXPANDED_TOOL_PACKAGES);
 }
 
+function getLatestAffectionForSession(session: ChatSession, character: Character): number | undefined {
+    try {
+        const values = getLatestCharacterStateValues(character.id);
+        if (!values || values.length === 0) return undefined;
+        const hit = values.find(v => /好感|好感度|affection|affinity/i.test(v.name));
+        if (hit && Number.isFinite(hit.value)) return Math.max(0, Math.min(100, hit.value));
+        return undefined;
+    } catch {
+        return undefined;
+    }
+}
+
 export function persistNativeExpandedToolSourceIds(sessionId: string, sourceIds: string[]): void {
     const sessions = loadChatSessions();
     const index = sessions.findIndex(session => session.id === sessionId);
@@ -1886,6 +1899,7 @@ export async function buildChatPromptMessages(
         : "";
 
     const llmMessages = assemblePromptPayload({
+        relationshipPromptLine: !session.isGroup ? buildRelationshipPromptLine(session.id, getLatestAffectionForSession(session, character)) : undefined,
         character,
         history: promptHistory,
         preset,
