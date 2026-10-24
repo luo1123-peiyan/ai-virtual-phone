@@ -7,6 +7,7 @@ import {
     dbReplaceContacts, dbReplaceSessions,
 } from "./chat-db";
 import { resolveUserIdentity } from "./settings-storage";
+import { extractRelationshipMarker, loadRelationshipState, saveRelationshipState, recordRelationshipChange, effectiveRelationshipLevels } from "./relationship-storage";
 import { loadCharacters } from "./character-storage";
 import { kvGet, kvSet, registerKvMigration } from "./kv-db";
 import { emitChatPluginEvent, runChatPluginTransformSync } from "./chat-plugin-hooks";
@@ -1123,6 +1124,24 @@ export function pushChatMessage(msg: Omit<ChatMessage, "id" | "createdAt" | "sta
     if (pluginResult.message && typeof pluginResult.message === "object" && pluginResult.message.id === newMsg.id) {
         newMsg = pluginResult.message;
     }
+    // 【关系系统】assistant 消息落库前：提取并剥离 AI 关系确认标记，触发关系变更
+    if (msg.role === "assistant" && msg.content) {
+        try {
+            const marker = extractRelationshipMarker(msg.content);
+            if (marker) {
+                const levels = effectiveRelationshipLevels(msg.sessionId);
+                const validName = levels.find(l => l.name === marker)?.name || marker;
+                const prev = loadRelationshipState(msg.sessionId);
+                if (prev.level !== validName) {
+                    const next = recordRelationshipChange(prev, validName, "ai");
+                    saveRelationshipState(next);
+                }
+                // 剥离标记文本，不展示给用户
+                newMsg = { ...newMsg, content: newMsg.content.replace(/【关系确认[:：][^】\r\n]{1,24}】\s*/g, "") };
+            }
+        } catch { /* 关系系统异常不影响消息落库 */ }
+    }
+
 
     _messagesCache.push(newMsg);
     dbPutMessage(newMsg);
