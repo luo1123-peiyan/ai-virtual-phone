@@ -38,6 +38,7 @@ import { clearChatOfflineTurns, loadChatOfflineTurns, type ChatOfflineTurn } fro
 import { triggerDeleteFriendReaction } from "@/lib/friend-request-engine";
 import { loadCharacters } from "@/lib/character-storage";
 import { isAgentComputerConfigured } from "@/lib/agent-computer";
+import { RelationshipManagerSection } from "./relationship-section";
 import { CharacterComputerPage } from "./character-computer-page";
 import { resolveUserIdentity, loadBindingConfig, loadPresets, resolveBinding, loadUserIdentities, saveUserIdentities, getCharacterBinding, setCharacterBinding, saveBindingConfig } from "@/lib/settings-storage";
 import type { UserIdentity } from "@/components/settings/user-identity";
@@ -883,6 +884,9 @@ export function ChatSettingsPanel({
                                 <ChevronRight size={16} />
                             </div>
                         </button>
+                    )}
+                    {!session.isGroup && (
+                        <RelationshipManagerSection sessionId={session.id} />
                     )}
                     {!session.isGroup && isAgentComputerConfigured() && (
                         <button className="menu-item" onClick={() => setShowComputer(true)}>
