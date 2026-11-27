@@ -1,110 +1,215 @@
-// 关系系统 UI 片段（聊天信息页嵌入）：等级/好感度手动调整 + 等级表自定义
+// components/chat/relationship-section.tsx —— 关系系统管理页（原生 PageShell UI）
 import { useMemo, useState } from "react";
-import { loadRelationshipState, saveRelationshipState, loadRelationshipConfig, saveRelationshipConfig, effectiveRelationshipLevels, recordRelationshipChange, levelFromAffection, type RelationshipLevel } from "@/lib/relationship-storage";
+import {
+    loadRelationshipState,
+    saveRelationshipState,
+    saveRelationshipConfig,
+    loadRelationshipConfig,
+    recordRelationshipChange,
+    effectiveRelationshipLevels,
+    type RelationshipLevel,
+} from "@/lib/relationship-storage";
 
-export function RelationshipManagerSection({ sessionId, onChange }: { sessionId: string; onChange?: () => void }) {
-  return <RelationshipManagerSectionInner key={sessionId} sessionId={sessionId} onChange={onChange} />;
+const BEHAVIOR_LIMIT = 600;
+
+export function RelationshipManagerSection({
+    sessionId,
+    onChange,
+}: {
+    sessionId: string;
+    onChange?: () => void;
+}) {
+    return <Inner key={sessionId} sessionId={sessionId} onChange={onChange} />;
 }
 
-function RelationshipManagerSectionInner({ sessionId, onChange }: { sessionId: string; onChange?: () => void }) {
-  const [state, setState] = useState(() => loadRelationshipState(sessionId));
-  const [expanded, setExpanded] = useState("none" as "none" | "adjust" | "levels");
-  const [customLevels, setCustomLevels] = useState<RelationshipLevel[]>(() => loadRelationshipConfig(sessionId).levels);
+function Inner({ sessionId, onChange }: { sessionId: string; onChange?: () => void }) {
+    const [tick, setTick] = useState(0);
+    const [customName, setCustomName] = useState("");
+    const [editing, setEditing] = useState<string | null>(null);
+    const [draftBehavior, setDraftBehavior] = useState("");
 
-  const levels = useMemo(
-    () => (customLevels.length > 0 ? customLevels : effectiveRelationshipLevels(sessionId)),
-    [customLevels, sessionId]
-  );
+    const config = useMemo(() => {
+        void tick;
+        return loadRelationshipConfig(sessionId);
+    }, [sessionId, tick]);
 
-  const switchToLevel = (name: string) => {
-    let next = recordRelationshipChange(state, name, "manual");
-    saveRelationshipState(next);
-    setState(next);
-    onChange?.();
-  };
+    const state = useMemo(() => {
+        void tick;
+        return loadRelationshipState(sessionId);
+    }, [sessionId, tick]);
 
-  const setAffection = (num: number) => {
-    const target = levelFromAffection(levels, num);
-    let next = state;
-    if (num < 0) num = 0; if (num > 100) num = 100;
-    if (target !== state.level) next = recordRelationshipChange({ ...state }, target, "manual", num);
-    saveRelationshipState(next);
-    setState(next);
-    onChange?.();
-  };
+    const levels: RelationshipLevel[] = useMemo(() => {
+        void tick;
+        return effectiveRelationshipLevels(sessionId);
+    }, [sessionId, tick]);
 
-  const saveLevels = () => {
-    saveRelationshipConfig(sessionId, { levels: customLevels, systemHint: "" });
-    setExpanded("none");
-    onChange?.();
-  };
+    const bump = () => {
+        setTick(t => t + 1);
+        onChange?.();
+    };
 
-  return (
-    <div className="menu-group">
-      {expanded === "none" && (
-        <button className="menu-item" onClick={() => setExpanded("adjust")}>
-          <span className="menu-label-group">
-            <span className="menu-label">当前关系</span>
-            <span className="menu-desc">{state.level}</span>
-          </span>
-          <span className="menu-right" />
-        </button>
-      )}
-      {expanded === "adjust" && (
-        <div className="menu-group">
-          <div className="flex flex-wrap gap-1.5 px-8">
-            {levels.map(l => (
-              <button
-                key={l.name}
-                onClick={() => switchToLevel(l.name)}
-                className={`ui-btn ${state.level === l.name ? "ui-btn-primary" : "ui-btn-ghost"} !px-3 !py-1.5 !text-[12px]`}
-              >{l.name}</button>
-            ))}
-          </div>
-          <div className="flex items-center gap-2 px-8">
-            <input
-              type="number" min={0} max={100} placeholder="好感度 0~100"
-              className="ui-input !w-24"
-              onKeyDown={e => { if (e.key === "Enter") { const v = parseInt((e.target as HTMLInputElement).value, 10); if (!isNaN(v)) setAffection(v); } }}
-            />
-            <button className="ui-btn ui-btn-ghost !px-3 !py-1.5 !text-[12px]" onClick={() => setExpanded("none")}>收起</button>
-          </div>
-        </div>
-      )}
-      <button className="menu-item" onClick={() => setExpanded(expanded === "levels" ? "none" : "levels")}>
-        <span className="menu-label-group"><span className="menu-label">关系等级表</span></span>
-        <span className="menu-right">
-          <span className="menu-desc mr-1">{levels.map(l => l.name).slice(0, 3).join("→")}…</span>
-        </span>
-      </button>
-      {expanded === "levels" && (
-        <div className="flex flex-col gap-1.5 px-8">
-          {customLevels.map((lv, i) => (
-            <div key={i} className="flex gap-1.5">
-              <input
-                value={lv.name}
-                onChange={e => setCustomLevels(customLevels.map((x, j) => j === i ? { ...x, name: e.target.value } : x))}
-                className="ui-input flex-1" placeholder="名称"
-              />
-              <input
-                type="number" value={lv.min}
-                onChange={e => setCustomLevels(customLevels.map((x, j) => j === i ? { ...x, min: parseInt(e.target.value, 10) || 0 } : x))}
-                className="ui-input !w-20" placeholder="min"
-              />
-              <button
-                onClick={() => setCustomLevels(customLevels.filter((_, j) => j !== i))}
-                className="ui-btn ui-btn-ghost !px-3 !py-1.5">—</button>
+    const switchTo = (name: string) => {
+        saveRelationshipState(recordRelationshipChange(loadRelationshipState(sessionId), name, "manual"));
+        bump();
+    };
+
+    const applyCustom = () => {
+        const n = customName.trim();
+        if (!n) return;
+        switchTo(n);
+        setCustomName("");
+    };
+
+    const toggleEnabled = () => {
+        const cur = loadRelationshipConfig(sessionId);
+        const base = cur.levels.length > 0 ? cur.levels : effectiveRelationshipLevels(sessionId);
+        saveRelationshipConfig(sessionId, {
+            levels: base,
+            systemHint: cur.systemHint,
+            enabled: cur.enabled === false,
+        });
+        bump();
+    };
+
+    const beginEdit = (lv: RelationshipLevel) => {
+        setEditing(lv.name);
+        setDraftBehavior(lv.behavior || "");
+    };
+
+    const saveBehavior = () => {
+        if (!editing) return;
+        const base = levels.map(l => ({ ...l }));
+        const idx = base.findIndex(l => l.name === editing);
+        if (idx >= 0) {
+            const text = draftBehavior.trim().slice(0, BEHAVIOR_LIMIT);
+            base[idx] = text ? { ...base[idx], behavior: text } : { name: base[idx].name, min: base[idx].min };
+        }
+        const cur = loadRelationshipConfig(sessionId);
+        saveRelationshipConfig(sessionId, { levels: base, systemHint: cur.systemHint, enabled: cur.enabled });
+        setEditing(null);
+        bump();
+    };
+
+    const enabled = config.enabled !== false;
+
+    return (
+        <div className="page-menu chat-info-menu">
+            {/* 开关 */}
+            <div className="menu-group">
+                <button className="menu-item" onClick={toggleEnabled}>
+                    <div className="menu-label-group">
+                        <span className="menu-label">关系影响对话</span>
+                        <span className="menu-desc">
+                            {enabled ? "已开启：当前关系会改变 TA 的说话方式" : "已关闭：关系只作标签，不注入提示词"}
+                        </span>
+                    </div>
+                    <div className="menu-right">
+                        <span className="menu-desc mr-1">{enabled ? "开" : "关"}</span>
+                    </div>
+                </button>
             </div>
-          ))}
-          <div className="flex gap-2">
-            <button
-              className="ui-btn ui-btn-ghost !px-3 !py-1.5"
-              onClick={() => setCustomLevels([...customLevels, { name: "新等级", min: 100 }])}
-            >+ 添加等级</button>
-            <button className="ui-btn ui-btn-primary !px-3 !py-1.5" onClick={saveLevels}>保存</button>
-          </div>
+
+            {/* 当前关系 + 切换 */}
+            <div className="menu-group">
+                <div className="menu-item" style={{ cursor: "default" }}>
+                    <div className="menu-label-group">
+                        <span className="menu-label">当前关系</span>
+                        <span className="menu-desc">点下面任意一条直接切换</span>
+                    </div>
+                    <div className="menu-right">
+                        <span className="menu-label">{state.level}</span>
+                    </div>
+                </div>
+                {levels.map(lv => (
+                    <button key={lv.name} className="menu-item" onClick={() => switchTo(lv.name)}>
+                        <div className="menu-label-group">
+                            <span className="menu-label">{lv.name}</span>
+                            <span className="menu-desc">
+                                好感度 ≥ {lv.min}
+                                {lv.behavior ? " · 已设行为" : " · 未设行为"}
+                            </span>
+                        </div>
+                        <div className="menu-right">
+                            {state.level === lv.name && (
+                                <span className="menu-desc mr-1" style={{ color: "var(--c-icon-active,#ff7aa2)" }}>
+                                    ✓
+                                </span>
+                            )}
+                            <button
+                                type="button"
+                                className="ui-btn ui-btn-ghost !px-2.5 !py-1 !text-[11px]"
+                                onClick={e => {
+                                    e.stopPropagation();
+                                    beginEdit(lv);
+                                }}
+                            >
+                                行为
+                            </button>
+                        </div>
+                    </button>
+                ))}
+            </div>
+
+            {/* 自定义关系 */}
+            <div className="menu-group">
+                <div className="menu-item" style={{ cursor: "default" }}>
+                    <div className="menu-label-group">
+                        <span className="menu-label">自定义关系</span>
+                        <span className="menu-desc">输入任意关系名，直接设为当前关系</span>
+                    </div>
+                </div>
+                <div className="flex items-center gap-2 px-4 pb-3">
+                    <input
+                        type="text"
+                        value={customName}
+                        onChange={e => setCustomName(e.target.value)}
+                        placeholder="如：未婚夫 / 师尊 / 宿敌"
+                        className="ui-input flex-1 min-w-0"
+                    />
+                    <button
+                        type="button"
+                        disabled={!customName.trim()}
+                        onClick={applyCustom}
+                        className="ui-btn ui-btn-primary shrink-0"
+                    >
+                        设为当前
+                    </button>
+                </div>
+            </div>
+
+            {/* 行为编辑弹层 */}
+            {editing !== null && (
+                <div className="fixed inset-0 z-[10020] flex items-end justify-center bg-black/45 sm:items-center">
+                    <div className="flex max-h-[86vh] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl bg-[var(--c-page-body-bg)] text-[var(--c-text)] shadow-2xl sm:rounded-2xl">
+                        <div className="px-5 pb-2 pt-4">
+                            <div className="font-bold text-[var(--c-text-title)]">「{editing}」的行为规范</div>
+                            <div className="menu-desc">
+                                这段文字会原样注入提示词，决定该关系下 TA 的称呼、主动程度和肢体距离
+                            </div>
+                        </div>
+                        <div className="flex-1 overflow-y-auto px-4 pb-3">
+                            <textarea
+                                value={draftBehavior}
+                                onChange={e => setDraftBehavior(e.target.value.slice(0, BEHAVIOR_LIMIT))}
+                                rows={8}
+                                placeholder="例如：直白、黏、占有欲外露。用亲昵称呼，主动撒娇，会吃醋会护短。"
+                                className="ui-input w-full resize-none leading-6"
+                            />
+                            <div className="menu-desc mt-1 text-right">
+                                {draftBehavior.length}/{BEHAVIOR_LIMIT}
+                            </div>
+                        </div>
+                        <div className="flex gap-2 px-4 pb-4">
+                            <button className="ui-btn ui-btn-ghost flex-1" onClick={() => setEditing(null)}>
+                                取消
+                            </button>
+                            <button className="ui-btn ui-btn-primary flex-1" onClick={saveBehavior}>
+                                保存
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
-      )}
-    </div>
-  );
+    );
 }
